@@ -1,7 +1,8 @@
 #include <R.h>
+#include <Rinternals.h>
 #include <math.h>
 
-void distanceOnTorus(int *d, double *x, double *y, double *distance)
+void distanceOnTorus_(int *d, double *x, double *y, double *distance)
 {
 	int k;
 	double squaredDistance, addedTerm, altTerm;
