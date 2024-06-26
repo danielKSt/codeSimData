@@ -11,3 +11,15 @@ RoxygenNote: 7.3.1
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+Imports: 
+    dplyr,
+    fmesher,
+    ggplot2,
+    graphics,
+    INLA,
+    Matrix,
+    rlang,
+    stats
+Depends: 
+    R (>= 2.10)
+LazyData: true
