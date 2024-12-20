@@ -122,6 +122,82 @@ plotting.transformed.theta <- function(res, trueParams, kappaUpperLim = NULL){
   graphics::abline(v = trueParams[2], col = "purple")
 }
 
+#' Function to estimate parameters for a periodic GRF, using PC prior
+#'
+#' @param observedData data to use for estimation
+#' @param priorSigma Prior parameters for sigma
+#' @param priorRange Prior parameters for the range
+#' @param spde inla.spde2 object
+#' @param torus Mesh
+#' @param A A-matrix
+#' @param femMatrices FEM approximation matrices
+#' @param reducedOutput Set to TRUE if you want only summary.hyperpar and marginal.hyperpar
+#'
+#' @returns INLA output from estimation of grf parameters
+#'
+#' @export
+
+estimate.param.periodic.grf.pcprior <- function(observedData, priorSigma = c(1, 1), priorRange = c(1,1), spde = NULL, torus = NULL, A = NULL, femMatrices = NULL, reducedOutput = FALSE){
+  if(is.null(torus) && is.null(A)){
+    return("Error: Not possible to make A-matrix")
+  } else if(is.null(A)) {
+    A <- fmesher::fm_basis(torus, loc = list(observedData$X1, observedData$X2))
+  }
+
+  if(is.null(spde)){
+    if(is.null(femMatrices) && is.null(torus)){
+      return("Error: Not possible to make spde object")
+    } else if(is.null(femMatrices)){
+      femMatrices <- fmesher::fm_fem(torus)
+    }
+    spde <- INLA::inla.spde2.generic(M0 = femMatrices$cc, M1 = femMatrices$g1, M2 = femMatrices$g2,
+                                     B0 = cbind(-0.5*log(4*pi) - log(8)/2, 1, -1), B1 = cbind(log(8)/2, -1, 0),
+                                     B2 = 1, theta.mu = c(log(1),log(1)),
+                                     theta.Q = diag(x = 1, nrow = 2, ncol = 2), transform = "identity")
+
+    lam1 <- -log(priorRange[2]) * priorRange[1]
+    initial.range <- log(priorRange[1]) + 1
+
+    lam2 <- -log(priorSigma[2]) / priorSigma[1]
+    initial.sigma <- log(priorSigma[1]) - 1
+
+    pcmatern.param <- c(lam1, lam2, 2)
+
+    spde$f$hyper.default <-
+      list(
+        theta1 = list(
+          prior = "pcmatern",
+          param = pcmatern.param,
+          initial = initial.range,
+          fixed = FALSE
+        ),
+        theta2 = list(
+          initial = initial.sigma,
+          fixed = FALSE
+        )
+      )
+
+  }
+  stk <- INLA::inla.stack(
+    data = list(resp = observedData$SimulationResult),
+    A = list(A, 1),
+    effects = list(i = 1:spde$n.spde,
+                   beta0 = rep(1, nrow(observedData))),
+    tag = 'est'
+  )
+
+  res <- INLA::inla(resp ~ 0 + f(i, model = spde),
+                    data = INLA::inla.stack.data(stk),
+                    control.predictor = list(A = INLA::inla.stack.A(stk)))
+
+  if(reducedOutput){
+    invisible(list(summary.hyperpar = res$summary.hyperpar, marginals.hyperpar = res$marginals.hyperpar))
+  } else {
+    invisible(res)
+  }
+}
+
+
 # A simple showcase of how one might use the functions from this file
 # torus <- fmesher::fm_tensor(list(fmesher::fm_mesh_1d(loc = seq(from = 0, to = 1, by = 1/64), interval = c(0,1), boundary = "cyclic"),
 #                                  fmesher::fm_mesh_1d(loc = seq(from = 0, to = 1, by = 1/64), interval = c(0,1), boundary = "cyclic")))

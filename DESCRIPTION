@@ -7,7 +7,7 @@ Description: Functionality for analysis of simulated surface data. This includes
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
@@ -18,8 +18,11 @@ Imports:
     graphics,
     INLA,
     Matrix,
+    Rcpp,
     rlang,
     stats
 Depends: 
     R (>= 2.10)
 LazyData: true
+LinkingTo: 
+    Rcpp

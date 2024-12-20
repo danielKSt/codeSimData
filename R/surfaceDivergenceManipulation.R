@@ -42,39 +42,195 @@ estimate.gradient.norm.sdiv <- function(sDiv, xdim, ydim, hx, hy){
 }
 
 
+#' Function for smoothing out data for some field on the surface
+#'
+#' @param radius Radius man ynskjer å vindauga for
+#'
+#' @returns Ei nx2 matrise med indexar for koordinatar innanfor ein sirkel med den gitte radiusen
+#'
+#' @export
+finn.vindauga.sirkel <- function(radius){
+  if(radius < 1){
+    return(matrix(data = c(0, 0), nrow = 1, ncol = 2))
+  }
+  top <- round(radius)
+  interval <- c(-top:top)
+  vindauga <- matrix(data = NA, nrow = length(interval)^2, ncol = 2)
+  accepted <- 1
+  for (i in interval) {
+    for (j in interval) {
+      if(i*i+j*j<=radius^2){
+        vindauga[accepted, ] <- c(i, j)
+        accepted <- accepted + 1
+      }
+    }
+  }
+  vindauga <- vindauga[!rowSums(is.na(vindauga)),]
+  return(vindauga)
+}
+
+
+#' Function for finding shell of a given window
+#'
+#' @param vindauga Vindauga me ynskjer å finne skallet til
+#'
+#' @returns Ei nx2 matrise med indexar for koordinatar innanfor ein sirkel med den gitte radiusen
+#'
+#' @export
+finn.skall.av.vindauga <- function(vindauga){
+  if(dim(vindauga)[1]==5){
+    return(matrix(data = c(-1L, 0L, 0L, 1L, 1L, 0L, 0L, -1L), ncol = 2, byrow = TRUE))
+  }
+  # Initialiserer skallet
+  skallDim <- 0
+  skall <- matrix(data = 0, nrow = dim(vindauga)[1], ncol = dim(vindauga)[2])
+
+  # Leggjer til pikslar frå lengst til venstre i øvre halvplan
+  x <- min(vindauga[, 1])
+  a <- which(vindauga[, 1] == x)
+  b <- which(vindauga[a, 2] >= 0)
+  indLeft <- a[b]
+  for (i in indLeft) {
+    skallDim <- skallDim + 1
+    skall[skallDim, ] <- vindauga[i, ]
+  }
+  ymax <- max(vindauga[a, 2])
+
+  for(x in (min(vindauga[, 1])+1):(-1)){
+    a <- which(vindauga[, 1] == x)
+    b <- which(vindauga[a, 2] > ymax)
+    if(length(b) == 0){
+      b <- which(vindauga[a, 2] >= ymax)
+    }
+    indLeft <- a[b]
+    for(i in indLeft){
+      skallDim <- skallDim + 1
+      skall[skallDim, ] <- vindauga[i, ]
+    }
+    ymax <- max(vindauga[a, 2])
+  }
+  kvadrantDim <- skallDim
+  for(i in 1:kvadrantDim){
+    skall[i+kvadrantDim, ] <- c(skall[i, 2], -skall[i, 1])
+    skall[i+2*kvadrantDim, ] <- c(-skall[i, 1], -skall[i, 2])
+    skall[i+3*kvadrantDim, ] <- c(-skall[i, 2], skall[i, 1])
+    skallDim <- skallDim+3
+  }
+  return(matrix(as.integer(skall[1:skallDim, ]), ncol = 2))
+}
+
 #' Funciton for smoothing out a single datapoint
 #' @param sField Matrix of values on the surface
-#' @param vindauga size of slinding window for smoothing
+#' @param vindauga indices of sliding window relative to the pixle we smooth around
 #' @param glatter matrix of weights for how to smooth the pixels
 #' @param i First index
 #' @param j Second index
+#' @param boundaryCondition "periodic" if we have periodic data, "physical" if not
 #'
 #' @returns A smoothed value
-single.pixle.smoothing<- function(sField, vindauga, glatter, i, j){
-  smoother.input <- c(1:dim(vindauga)[1])
-  for (k in c(1:dim(vindauga)[1])) {
-    smoother.input[k] <- sField[(i-1-vindauga[k,1])%%dim(sField)[1]+1, (j-1-vindauga[k,2])%%dim(sField)[2]+1]
+single.pixle.smoothing<- function(sField, vindauga, glatter, i, j, boundaryCondition){
+  xdim <- dim(sField)[1]
+  ydim <- dim(sField)[2]
+  if(boundaryCondition == "periodic"){
+    vindaugaJustert <- t(t(vindauga) + c(i,j)) - 1
+    vindaugaJustert[,1] <- vindaugaJustert[,1]%%xdim + 1
+    vindaugaJustert[,2] <- vindaugaJustert[,2]%%ydim + 1
+    vindaugaJustert <- lapply(c(1:dim(vindaugaJustert)[1]), function(x){return(vindaugaJustert[x,])})
   }
+  else if(boundaryCondition == "physical"){
+    vindaugaJustert <- t(t(vindauga) + c(i,j))
+    utfor1 <- which(vindaugaJustert[ , 1] < 1)
+    utfor2 <- which(vindaugaJustert[ , 2] < 1)
+    utfor3 <- which(vindaugaJustert[ , 1] > xdim)
+    utfor4 <- which(vindaugaJustert[ , 2] > ydim)
+    utfor <- unique(c(utfor1, utfor2, utfor3, utfor4))
+    if(!length(utfor)==0){vindaugaJustert <- vindaugaJustert[-utfor, ]}
+    vindaugaJustert <- lapply(c(1:dim(vindaugaJustert)[1]), function(x){return(vindaugaJustert[x,])})
+  }
+  smoother.input <- sapply(X = vindaugaJustert,
+                           function(index, sField){return(sField[index[1], index[2]])},
+                           sField = sField)
+
   return(glatter(smoother.input))
 }
+
 
 #' Function for smoothing out data for some field on the surface
 #'
 #' @param sField Matrix of values on the surface
-#' @param vindauga size of slinding window for smoothing
+#' @param vindauga indices of sliding window relative to the pixle we smooth around
 #' @param glatter matrix of weights for how to smooth the pixels
+#' @param boundaryCondition "periodic" if we have periodic data, "physical" if not
 #'
 #' @returns A smoothed version of sField
 #'
 #' @export
-smooth.surface.field <- function(sField, vindauga, glatter){
+smooth.surface.field <- function(sField, vindauga, glatter, boundaryCondition){
   xdim <- dim(sField)[1]
   ydim <- dim(sField)[2]
   res <- matrix(data = NA, nrow = xdim, ncol = ydim)
-  for (i in 1:xdim) {
-    for (j in 1:ydim) {
-      res[i,j] <- single.pixle.smoothing(sField, vindauga, glatter, i, j)
-    }
-  }
-  return(res)
+  indices <- as.matrix(expand.grid(X = 1:xdim, Y = 1:ydim))
+  res <- apply(indices, MARGIN = 1,
+               FUN = function(x){
+                 return(
+                   single.pixle.smoothing(sField = sField,
+                                          vindauga = vindauga,
+                                          glatter = glatter,
+                                          i = x[1],
+                                          j = x[2],
+                                          boundaryCondition = boundaryCondition)
+                   )
+                 })
+  return(matrix(data = res, nrow = xdim))
 }
+
+
+#' Function for calculating the local variance with periodic boundary conditions
+#'
+#' @param sField Matrix of values on the surface
+#' @param vindauga indices of sliding window relative to the pixle we smooth around
+#' @param skall indices of shell of sliding window relative to the pixle we smooth around
+#'
+#' @returns A smoothed version of sField
+#'
+#' @useDynLib codeSimData
+#' @importFrom Rcpp evalCpp
+#'
+#' @export
+locvar.transformation.periodic <- function(sField, vindauga, skall){
+  if(dim(vindauga)[1]!=2){vindauga <- t(vindauga)}
+  if(dim(skall)[1]!=2){skall <- t(skall)}
+  res <- calculateLocVar_periodic(inWin = vindauga, inShell = skall, insDiv = sField,
+                                  inDims = c(dim(sField)[1], dim(sField)[2], dim(vindauga)[2], dim(vindauga)[2]))
+  return(matrix(data = res, nrow = dim(sField)[1]))
+}
+
+
+# sField <- matrix(data = c(1,2,3,4,5,6,7,
+#                           2,3,4,5,6,7,8,
+#                           3,4,5,6,7,8,9,
+#                           4,5,6,7,8,9,10,
+#                           5,6,7,8,9,10,11), nrow = 7)
+#
+# vindauga <- finn.vindauga.sirkel(radius = 2)
+# glatter <- mean
+# boundaryCondition <- "physical"
+#
+# a <- smooth.surface.field(sField = sField, vindauga = vindauga, glatter = mean, boundaryCondition = "periodic")
+# #View(a)
+# image(sField)
+# image(a)
+
+#library(Rcpp)
+#compileAttributes()
+# sField <- matrix(data = 0, nrow = 7, ncol = 5)
+# for(y in 1:dim(sField)[2]){
+#   for(x in 1:dim(sField)[1]){
+#     sField[x,y] <- x+y
+#   }
+# }
+#
+# vindauga <- finn.vindauga.sirkel(radius = 2)
+# skall <- finn.skall.av.vindauga(vindauga = vindauga)
+# res <- calculateLocVar_periodic(inWin = t(vindauga), inShell = t(skall), insDiv = sField,
+#                                 inDims = c(7, 5, dim(vindauga)[1], dim(skall)[1]))

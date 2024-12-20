@@ -35,11 +35,11 @@ surfacePP.plot <- function(sPPCoords){
 #'
 #' @export
 surface.field.pp.plot <- function(sField, sPPCoords){
-  data.loc <- expand.grid(X = (1:dim(sField)[1])/256.0, Y = (1:dim(sField)[2])/256.0)
+  data.loc <- expand.grid(X = (1:dim(sField)[1]), Y = (1:dim(sField)[2]))
   data.loc$sField <- array(sField)
   res <- ggplot(data=data.loc, mapping = aes(x = .data$X, y = .data$Y, fill = .data$sField))+
     geom_tile()+
     theme(legend.position = "bottom")+
-    geom_point(data = sPPCoords, mapping = aes(x = .data$x, y = .data$y, fill = .data$noPixels))
+    geom_point(data = sPPCoords, mapping = aes(x = .data$x*256, y = .data$y*256, fill = .data$noPixels))
   return(res)
 }

@@ -70,7 +70,7 @@ find.vortices.specific.time <- function(vortexData){
             }
           }
         }
-        vortexSummary <- explore.vortex(pixels, c(256, 256))
+        vortexSummary <- explore.vortex(pixels, c(dim(vortexData)[1], dim(vortexData)[2]))
         if(numberOfVortices == 1){
           vortices <- data.frame(x = vortexSummary[1], y = vortexSummary[2], noPixels = vortexSummary[3],
                                  xStretch = vortexSummary[4], yStretch = vortexSummary[5])
@@ -100,7 +100,7 @@ find.vortices.over.time <- function(vortexData){
   endTimestep <- dim(vortexData)[1]
   vortices <- vector(mode = "list", length = endTimestep)
   for(i in 1:endTimestep) {
-    vortices[[i]] <- find.vortices.specific.time(vortexData = vortexData[i, 1:256, 1:256])
+    vortices[[i]] <- find.vortices.specific.time(vortexData = vortexData[i, , ])
   }
 
   return(vortices)

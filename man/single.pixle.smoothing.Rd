@@ -4,18 +4,20 @@
 \alias{single.pixle.smoothing}
 \title{Funciton for smoothing out a single datapoint}
 \usage{
-single.pixle.smoothing(sField, vindauga, glatter, i, j)
+single.pixle.smoothing(sField, vindauga, glatter, i, j, boundaryCondition)
 }
 \arguments{
 \item{sField}{Matrix of values on the surface}
 
-\item{vindauga}{size of slinding window for smoothing}
+\item{vindauga}{indices of sliding window relative to the pixle we smooth around}
 
 \item{glatter}{matrix of weights for how to smooth the pixels}
 
 \item{i}{First index}
 
 \item{j}{Second index}
+
+\item{boundaryCondition}{"periodic" if we have periodic data, "physical" if not}
 }
 \value{
 A smoothed value

@@ -4,14 +4,16 @@
 \alias{smooth.surface.field}
 \title{Function for smoothing out data for some field on the surface}
 \usage{
-smooth.surface.field(sField, vindauga, glatter)
+smooth.surface.field(sField, vindauga, glatter, boundaryCondition)
 }
 \arguments{
 \item{sField}{Matrix of values on the surface}
 
-\item{vindauga}{size of slinding window for smoothing}
+\item{vindauga}{indices of sliding window relative to the pixle we smooth around}
 
 \item{glatter}{matrix of weights for how to smooth the pixels}
+
+\item{boundaryCondition}{"periodic" if we have periodic data, "physical" if not}
 }
 \value{
 A smoothed version of sField
