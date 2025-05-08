@@ -43,3 +43,22 @@ surface.field.pp.plot <- function(sField, sPPCoords){
     geom_point(data = sPPCoords, mapping = aes(x = .data$x*256, y = .data$y*256, fill = .data$noPixels))
   return(res)
 }
+
+
+#' Function for plotting a snapshot of surface field and surface pp together
+#' @param aicMatrix Matrix with surface field data for the interesting snapshot
+#' @param lagValues Coordinates for the point process
+#' @param timeScale how many timescales per frame?
+#' @param lengthScale how many lengthscales per pixle?
+#' @param radiar description
+#'
+#' @importFrom ggplot2 ggplot aes geom_tile
+#'
+#' @export
+aicPlot <- function(aicMatrix, lagValues, timeScale, lengthScale, radiar){
+  data.loc <- expand.grid(r = radiar*lengthScale, h = lagValues*timeScale)
+  data.loc$aic <- array(aicMatrix)
+  res <- ggplot(data=data.loc, mapping = aes(x = .data$r, y = .data$h, fill = .data$aic))+
+    geom_tile()
+  return(res)
+}

@@ -20,6 +20,8 @@ Imports:
     Matrix,
     Rcpp,
     rlang,
+    spatstat.geom,
+    spatstat.model,
     stats
 Depends: 
     R (>= 2.10)
