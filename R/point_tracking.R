@@ -85,6 +85,24 @@ one.step <- function(points.t1, points.t2, pointsComplete, living, t, closenessT
 
   while(noAdded < min(no_v1, no_v2) && min(dist[-added.t1, -added.t2]) < closenessThreshold){
     minimal <- which(dist == min(dist[-added.t1, -added.t2]), arr.ind = TRUE)
+
+    if(anyDuplicated(minimal[ , 1])){
+      duplicatesTime1 <- which(minimal[ , 1] == minimal[which(duplicated(minimal[ , 1]))])
+      tempSecondConnector <- c(couples[1:noAdded , 2], minimal[duplicatesTime1 , 2])
+      if(anyDuplicated(tempSecondConnector)){
+        minimal <- matrix(data = minimal[-duplicatesTime1[(which(duplicated(tempSecondConnector))-noAdded)], ], ncol = 2)
+      }
+      rm(duplicatesTime1, tempSecondConnector)
+    }
+    if(anyDuplicated(minimal[ , 2])){
+      duplicatesTime2 <- which(minimal[ , 2] == minimal[which(duplicated(minimal[ , 2]))])
+      tempFirstConnector <- c(couples[1:noAdded , 1], minimal[duplicatesTime2 , 1])
+      if(anyDuplicated(tempFirstConnector)){
+        minimal <- matrix(data = minimal[-duplicatesTime2[(which(duplicated(tempFirstConnector))-noAdded)], ], ncol = 2)
+      }
+      rm(duplicatesTime2, tempFirstConnector)
+    }
+
     newFirstConnector <- c(couples[1:noAdded , 1], minimal[ , 1])
     if(any(duplicated(newFirstConnector))){
       minimal <- matrix(data = minimal[-(which(duplicated(newFirstConnector))-noAdded), ], ncol = 2)
