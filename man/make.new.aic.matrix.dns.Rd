@@ -11,7 +11,8 @@ make.new.aic.matrix.dns(
   scars.pp,
   sDiv,
   indices,
-  printProgress = FALSE
+  radiiModulo = 1000L,
+  radiiForPrint = c(1)
 )
 }
 \arguments{
@@ -27,7 +28,9 @@ make.new.aic.matrix.dns(
 
 \item{indices}{which indices to use}
 
-\item{printProgress}{Boolean variable to indicate whether to print progress or not}
+\item{radiiModulo}{parameter for encoding lag and radius into single matrix}
+
+\item{radiiForPrint}{Boolean variable to indicate whether to print progress or not}
 }
 \description{
 Function for making a new AIC matrix given DNS data

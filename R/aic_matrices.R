@@ -387,6 +387,46 @@ combine.covariates.betasq.dns <- function(sDiv, indices, h){
   return(Z)
 }
 
+#' Function for making a new AIC matrix given DNS data for a given radius and lag
+#' @param r_and_h_untransformed r_and_h_combined in single number
+#' @param vortices.pp votrices as spatstat point process
+#' @param scars.pp scars as spatstat point process
+#' @param sDiv horisontal divergence
+#' @param indices which indices to use
+#' @param radiiForPrint which radii to print
+#' @param startLag First lag, used to decide when to print the radius
+#' @param radiiModulo Parameter for how to decode the r_and_h_untransformed to r and h
+#'
+#' @export
+aic.given.radius.and.lag <- function(r_and_h_untransformed, vortices.pp, scars.pp, sDiv,
+                                    indices, radiiForPrint, startLag, radiiModulo = 1000L){
+  r <- r_and_h_untransformed %% radiiModulo
+  h <- (r_and_h_untransformed - r)/radiiModulo
+
+  if((r %in% radiiForPrint) && (h == startLag)) {print(r)}
+  Z <- combine.covariates.dns(sDiv = sDiv, indices = indices, r = r, h = h)
+  vort.fit <- spatstat.model::ppm(vortices.pp ~ Z)
+  scar.fit <- spatstat.model::ppm(scars.pp ~ Z)
+
+  rm(Z, r, h)
+  return(c(stats::AIC(vort.fit), stats::AIC(scar.fit)))
+}
+
+#' Function for making a matrix containing information both on the lag and radius to be used for each index in the aicMatrices
+#' @param radiar Vector with all radii for local variance
+#' @param lags Vector with all lag values to use
+#' @param radiiModulo parameter for how to encode lag and radius
+#'
+#' @export
+make.input.matrix <- function(radiar, lags, radiiModulo = 1000L){
+  res <- matrix(data = as.integer(radiar), ncol = length(radiar), nrow = length(lags), byrow = TRUE)
+  for (h_i in 1:length(lags)) {
+    res[h_i, ] <- res[h_i, ] + radiiModulo*lags[h_i]
+  }
+  return(res)
+}
+
+
 
 #' Function for making a new AIC matrix given DNS data
 #' @param radiar Vector with all radii for local variance
@@ -395,26 +435,35 @@ combine.covariates.betasq.dns <- function(sDiv, indices, h){
 #' @param scars.pp scars as spatstat point process
 #' @param sDiv horisontal divergence
 #' @param indices which indices to use
-#' @param printProgress Boolean variable to indicate whether to print progress or not
+#' @param radiiModulo parameter for encoding lag and radius into single matrix
+#' @param radiiForPrint Boolean variable to indicate whether to print progress or not
 #'
 #' @export
 make.new.aic.matrix.dns <- function(radiar, lags, vortices.pp, scars.pp, sDiv,
-                                             indices, printProgress = FALSE){
-  aicMatrix.scars <- matrix(0, nrow = length(lags), ncol = length(radiar))
-  aicMatrix.vortices <- matrix(0, nrow = length(lags), ncol = length(radiar))
+                                             indices, radiiModulo = 1000L, radiiForPrint = c(1)){
+  inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
+  aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = aic.given.radius.and.lag, vortices.pp = vortices.pp,
+                       scars.pp = scars.pp, sDiv = sDiv, indices = indices, radiiForPrint = radiiForPrint,
+                       startLag = lags[1], radiiModulo = radiiModulo)
 
-  for (r in radiar) {
-    for (h in lags) {
-      if(printProgress){print(c(r, h))}
-      Z <- combine.covariates.dns(sDiv = sDiv, indices = indices, r = r, h = h)
-      a <- spatstat.model::ppm(vortices.pp ~ Z)
-      aicMatrix.vortices[which(lags == h), r] <- stats::AIC(a)
-      b <- spatstat.model::ppm(scars.pp ~ Z)
-      aicMatrix.scars[which(lags == h), r] <- stats::AIC(b)
-    }
-  }
+  # aicMatrix.scars <- matrix(0, nrow = length(lags), ncol = length(radiar))
+  # aicMatrix.vortices <- matrix(0, nrow = length(lags), ncol = length(radiar))
 
-  rm(a, b, Z, r, h)
+  # for (r in radiar) {
+  #   for (h in lags) {
+  #     if(printProgress){print(c(r, h))}
+  #     Z <- combine.covariates.dns(sDiv = sDiv, indices = indices, r = r, h = h)
+  #     a <- spatstat.model::ppm(vortices.pp ~ Z)
+  #     aicMatrix.vortices[which(lags == h), r] <- stats::AIC(a)
+  #     b <- spatstat.model::ppm(scars.pp ~ Z)
+  #     aicMatrix.scars[which(lags == h), r] <- stats::AIC(b)
+  #   }
+  # }
+
+  aicMatrix.vortices <- aicMatrices[1, , ]
+  aicMatrix.scars <- aicMatrices[2, , ]
+  rm(aicMatrices)
+
   return(list("aicMatrix.vortices" = aicMatrix.vortices, "aicMatrix.scars" = aicMatrix.scars))
 }
 
