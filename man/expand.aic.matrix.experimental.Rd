@@ -14,7 +14,7 @@ expand.aic.matrix.experimental(
   hDiv,
   indices,
   ensembles,
-  printProgress = TRUE,
+  printProgress = FALSE,
   skim = 0
 )
 }

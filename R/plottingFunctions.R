@@ -51,14 +51,20 @@ surface.field.pp.plot <- function(sField, sPPCoords){
 #' @param timeScale how many timescales per frame?
 #' @param lengthScale how many lengthscales per pixle?
 #' @param radiar description
+#' @param plotAsContour set to TRUE if you want a contour plot instead of a heatmap
 #'
-#' @importFrom ggplot2 ggplot aes geom_tile
+#' @importFrom ggplot2 ggplot aes geom_tile geom_contour_filled
 #'
 #' @export
-aicPlot <- function(aicMatrix, lagValues, timeScale, lengthScale, radiar){
+aicPlot <- function(aicMatrix, lagValues, timeScale, lengthScale, radiar, plotAsContour = FALSE){
   data.loc <- expand.grid(r = radiar*lengthScale, h = lagValues*timeScale)
   data.loc$aic <- array(aicMatrix)
-  res <- ggplot(data=data.loc, mapping = aes(x = .data$r, y = .data$h, fill = .data$aic))+
-    geom_tile()
+  res <- ggplot(data=data.loc, mapping = aes(x = .data$r, y = .data$h, fill = .data$aic, z = .data$aic))
+  if(plotAsContour){
+    res <- res + geom_contour_filled()
+  }
+  else {
+    res <- res + geom_tile()
+  }
   return(res)
 }

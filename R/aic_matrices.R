@@ -191,8 +191,8 @@ make.new.aic.matrix.experimental <- function(radiar, hmax, vortices.pp, scars.pp
   aicMatrix.vortices <- matrix(0, nrow = 2*hmax+1, ncol = length(radiar))
 
   for (r in radiar) {
+    if(printProgress){print(r)}
     for (h in c(-hmax:hmax)) {
-      if(printProgress){print(c(r, h))}
       Z <- combine.covariates.experimental(hDiv = hDiv, indices = indices, ensembles = ensembles, r = r, h = h, skim = skim)
       a <- spatstat.model::ppm(vortices.pp ~ Z)
       aicMatrix.vortices[h+hmax+1, r] <- stats::AIC(a)
@@ -221,7 +221,7 @@ make.new.aic.matrix.experimental <- function(radiar, hmax, vortices.pp, scars.pp
 #'
 #' @export
 expand.aic.matrix.experimental <- function(gamleRadiar, nyeRadiar, hmax, gamleMatriser, vortices.pp, scars.pp, hDiv,
-                              indices, ensembles, printProgress = TRUE, skim = 0){
+                              indices, ensembles, printProgress = FALSE, skim = 0){
 
   aicMatrix.scars <- matrix(0, nrow = 2*hmax+1, ncol = length(gamleRadiar)+length(nyeRadiar))
   aicMatrix.vortices <- matrix(0, nrow = 2*hmax+1, ncol = length(gamleRadiar)+length(nyeRadiar))
@@ -230,8 +230,8 @@ expand.aic.matrix.experimental <- function(gamleRadiar, nyeRadiar, hmax, gamleMa
   aicMatrix.vortices[1:(2*hmax+1), gamleRadiar] <- gamleMatriser$aicMatrix.vortices
 
   for (r in nyeRadiar) {
+    if(printProgress){print(r)}
     for (h in c(-hmax:hmax)) {
-      if(printProgress){print(c(r, h))}
       Z <- combine.covariates.experimental(hDiv = hDiv, indices = indices, ensembles = ensembles, r = r, h = h, skim = skim)
       a <- spatstat.model::ppm(vortices.pp ~ Z)
       aicMatrix.vortices[h+hmax+1, r] <- stats::AIC(a)

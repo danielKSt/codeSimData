@@ -2,7 +2,7 @@
 
 #' @param pixelCoords coordinates of pixels in current dimension
 #' @param modNum Total number of pixels in dimension
-mean.pixels.crossing.border <- function(pixelCoords, modNum){
+myMean.pixels.crossing.border <- function(pixelCoords, modNum){
   pixelCoords <- pixelCoords*(pixelCoords < floor(modNum/2)) +
     (pixelCoords - modNum)*(pixelCoords >= floor(modNum/2))
   return(c(mean(pixelCoords), max(pixelCoords)-min(pixelCoords)))
@@ -16,12 +16,12 @@ mean.pixels.crossing.border <- function(pixelCoords, modNum){
 #' @export
 explore.vortex <- function(vortexPixels, boxDimensions){
   if(any(vortexPixels$x==1) && any(vortexPixels$x==boxDimensions[1])){
-    xInfo <- mean.pixels.crossing.border(vortexPixels$x, boxDimensions[1])
+    xInfo <- myMean.pixels.crossing.border(vortexPixels$x, boxDimensions[1])
   }
   else {xInfo <- c(mean(vortexPixels$x), max(vortexPixels$x)-min(vortexPixels$x))}
 
   if(any(vortexPixels$y==1) && any(vortexPixels$y==boxDimensions[2])){
-    yInfo <- mean.pixels.crossing.border(vortexPixels$y, boxDimensions[2])
+    yInfo <- myMean.pixels.crossing.border(vortexPixels$y, boxDimensions[2])
   }
   else {yInfo <- c(mean(vortexPixels$y), max(vortexPixels$y)-min(vortexPixels$y))}
   return(c(xInfo[1]/(boxDimensions[1]+1),
