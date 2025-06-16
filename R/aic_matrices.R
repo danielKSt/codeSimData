@@ -190,14 +190,15 @@ make.new.aic.matrix.experimental <- function(radiar, hmax, vortices.pp, scars.pp
   aicMatrix.scars <- matrix(0, nrow = 2*hmax+1, ncol = length(radiar))
   aicMatrix.vortices <- matrix(0, nrow = 2*hmax+1, ncol = length(radiar))
 
-  for (r in radiar) {
+  for (r_ind in c(1:length(radiar))) {
+    r <- radiar[r_ind]
     if(printProgress){print(r)}
     for (h in c(-hmax:hmax)) {
       Z <- combine.covariates.experimental(hDiv = hDiv, indices = indices, ensembles = ensembles, r = r, h = h, skim = skim)
       a <- spatstat.model::ppm(vortices.pp ~ Z)
-      aicMatrix.vortices[h+hmax+1, r] <- stats::AIC(a)
+      aicMatrix.vortices[h+hmax+1, r_ind] <- stats::AIC(a)
       b <- spatstat.model::ppm(scars.pp ~ Z)
-      aicMatrix.scars[h+hmax+1, r] <- stats::AIC(b)
+      aicMatrix.scars[h+hmax+1, r_ind] <- stats::AIC(b)
     }
   }
 
