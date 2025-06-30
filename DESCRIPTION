@@ -19,6 +19,7 @@ Imports:
     INLA,
     Matrix,
     Rcpp,
+    reticulate,
     rlang,
     spatstat.geom,
     spatstat.model,
