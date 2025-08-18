@@ -201,7 +201,7 @@ locvar.transformation.periodic <- function(sField, vindauga, skall){
   if(dim(vindauga)[1]!=2){vindauga <- t(vindauga)}
   if(dim(skall)[1]!=2){skall <- t(skall)}
   res <- calculateLocVar_periodic(inWin = vindauga, inShell = skall, insDiv = sField,
-                                  inDims = c(dim(sField)[1], dim(sField)[2], dim(vindauga)[2], dim(vindauga)[2]))
+                                  inDims = c(dim(sField)[1], dim(sField)[2], dim(vindauga)[2], dim(skall)[2]))
   return(matrix(data = res, nrow = dim(sField)[1]))
 }
 

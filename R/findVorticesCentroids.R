@@ -117,6 +117,12 @@ find.vortices.over.time <- function(vortexData){
 #' @returns Vector of vortex properties
 #' @export
 explore.scar <- function(pixels, dims, np, skimage){
+  if(is.null(np)){
+    np <- reticulate::import("numpy")
+  }
+  if(is.null(skimage)){
+    skimage <- reticulate::import("skimage.morphology")
+  }
   noPixels <- dim(pixels)[1]
   if((min(pixels$x) == 1) && (max(pixels$x) == dims[1])){
     pixels$x <- ((pixels$x + floor(dims[1]/2)) %% dims[1])
@@ -165,6 +171,12 @@ explore.scar <- function(pixels, dims, np, skimage){
 #' @returns Dataframe with scar data
 #' @export
 find.scars.specific.time <- function(scarData, np, skimage){
+  if(is.null(np)){
+    np <- reticulate::import("numpy")
+  }
+  if(is.null(skimage)){
+    skimage <- reticulate::import("skimage.morphology")
+  }
   numberOfScars <- 0
   for (x in 1:dim(scarData)[1]) {
     for (y in 1:dim(scarData)[2]) {
@@ -245,6 +257,12 @@ find.scars.over.time <- function(scarData){
 #' @returns Centerline of the scar
 #'
 skeletonize_object_py <- function(df, np, skimage) {
+  if(is.null(np)){
+    np <- reticulate::import("numpy")
+  }
+  if(is.null(skimage)){
+    skimage <- reticulate::import("skimage.morphology")
+  }
   # Create binary image matrix
   width <- max(df$x) + 1
   height <- max(df$y) + 1
@@ -270,4 +288,66 @@ skeletonize_object_py <- function(df, np, skimage) {
   )
 
   return(skeleton_df)
+}
+
+
+#' Function to go from complete mapped scar pixel data to the point process format of scar data
+#' @param scarData Matrix of zeros and ones, where the ones are the pixels with a scar on them
+#' @param np numpy from package reticulate
+#' @param skimage skimage
+#'
+#' @returns Dataframe with scar data
+#' @export
+find.scars.centrelines.specific.time <- function(scarData, np = NULL, skimage = NULL){
+  if(is.null(np)){
+    np <- reticulate::import("numpy")
+  }
+  if(is.null(skimage)){
+    skimage <- reticulate::import("skimage.morphology")
+  }
+  numberOfScars <- 0
+  for (x in 1:dim(scarData)[1]) {
+    for (y in 1:dim(scarData)[2]) {
+      if(scarData[x,y]==1){
+        x_start <- x
+        y_start <- y
+        numberOfScars <- numberOfScars + 1
+        remaining <- list(c(x_start, y_start))
+        remainingCount <- 1
+        scarData[x_start, y_start] <- 2
+        pixels <- data.frame(x = x_start, y = y_start)
+        pixelsCount <- 1
+        while(remainingCount > 0){
+          x <- remaining[[remainingCount]][1]
+          y <- remaining[[remainingCount]][2]
+          remaining[[remainingCount]] <- NULL
+          remainingCount <- remainingCount - 1
+          kj_list <- list(c(-1, -1), c(-1, 0), c(-1, 1), c(0, -1), c(0, 1), c(1, -1), c(1, 0), c(1, 1))
+          for (kj in kj_list) {
+            xNew <- (x + kj[1])%%dim(scarData)[1]
+            xNew <- xNew + dim(scarData)[1]*(xNew==0)
+            yNew <- (y + kj[2])%%dim(scarData)[2]
+            yNew <- yNew + dim(scarData)[2]*(yNew==0)
+            if(scarData[xNew, yNew] == 1){
+              remainingCount <- remainingCount + 1
+              remaining[[remainingCount]] <- c(xNew, yNew)
+              scarData[xNew, yNew] <- 2
+              pixels[nrow(pixels)+1,] <- c(xNew, yNew)
+              pixelsCount <- pixelsCount + 1
+            }
+          }
+        }
+        if(numberOfScars == 1){
+          scars <- list(skeletonize_object_py(df = pixels, np = np, skimage = skimage))
+        } else {
+          scars[[numberOfScars]] <- skeletonize_object_py(df = pixels, np = np, skimage = skimage)
+        }
+      }
+    }
+  }
+  if(numberOfScars > 0){
+    return(scars)
+  } else {
+    return(0)
+  }
 }
