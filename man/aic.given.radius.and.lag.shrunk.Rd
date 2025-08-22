@@ -12,7 +12,9 @@ aic.given.radius.and.lag.shrunk(
   indices,
   radiiForPrint,
   startLag,
-  radiiModulo = 1000L
+  radiiModulo = 1000L,
+  xlim,
+  ylim
 )
 }
 \arguments{
@@ -31,6 +33,10 @@ aic.given.radius.and.lag.shrunk(
 \item{startLag}{First lag, used to decide when to print the radius}
 
 \item{radiiModulo}{Parameter for how to decode the r_and_h_untransformed to r and h}
+
+\item{xlim}{how much to shrink the window in the x direction}
+
+\item{ylim}{how much to shrink the window in the y direction}
 }
 \description{
 Function for making a new AIC matrix given DNS data for a given radius and lag

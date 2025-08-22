@@ -23,8 +23,15 @@
 #
 # indices <- tidspunkt
 # points <- simulatedVortices
+#
+# plot(prepare.points.dns.shrunk(indices = c (1, 100), points = simulatedScars, xlim = xlim, ylim = ylim))
+#
+# plot(x = simulatedScars[[1]]$x, y = simulatedScars[[1]]$y)
+# lines(x = c(0.25, 0.25, 0.75, 0.75, 0.25), y = c(0.25, 0.75, 0.75, 0.25, 0.25))
+# plot(x = simulatedScars[[100]]$x, y = simulatedScars[[100]]$y)
+# lines(x = c(0.25, 0.25, 0.75, 0.75, 0.25), y = c(0.25, 0.75, 0.75, 0.25, 0.25))
 
-#' Function for checking if any of the points are in the shrunk observation window
+#' Function for scaling points from a reduced observation window into a "full" observation window
 #' @param points dataframe of points
 #' @param xlim how much to shrink the window in the x direction
 #' @param ylim how much to shrink the window in the y direction
@@ -236,15 +243,18 @@ combine.covariates.betasq.dns.shrunk <- function(sDiv, indices, h, xlim, ylim){
 #' @param radiiForPrint which radii to print
 #' @param startLag First lag, used to decide when to print the radius
 #' @param radiiModulo Parameter for how to decode the r_and_h_untransformed to r and h
+#' @param xlim how much to shrink the window in the x direction
+#' @param ylim how much to shrink the window in the y direction
 #'
 #' @export
 aic.given.radius.and.lag.shrunk <- function(r_and_h_untransformed, vortices.pp, scars.pp, sDiv,
-                                     indices, radiiForPrint, startLag, radiiModulo = 1000L){
+                                     indices, radiiForPrint, startLag, radiiModulo = 1000L,
+                                     xlim, ylim){
   r <- r_and_h_untransformed %% radiiModulo
   h <- (r_and_h_untransformed - r)/radiiModulo
 
   if((r %in% radiiForPrint) && (h == startLag)) {print(r)}
-  Z <- combine.covariates.dns.shrunk(sDiv = sDiv, indices = indices, r = r, h = h)
+  Z <- combine.covariates.dns.shrunk(sDiv = sDiv, indices = indices, r = r, h = h, xlim = xlim, ylim = ylim)
   vort.fit <- spatstat.model::ppm(vortices.pp ~ Z)
   scar.fit <- spatstat.model::ppm(scars.pp ~ Z)
 
@@ -262,14 +272,17 @@ aic.given.radius.and.lag.shrunk <- function(r_and_h_untransformed, vortices.pp, 
 #' @param indices which indices to use
 #' @param radiiModulo parameter for encoding lag and radius into single matrix
 #' @param radiiForPrint Boolean variable to indicate whether to print progress or not
+#' @param xlim how much to shrink the window in the x direction
+#' @param ylim how much to shrink the window in the y direction
 #'
 #' @export
 make.new.aic.matrix.dns.shrunk <- function(radiar, lags, vortices.pp, scars.pp, sDiv,
-                                    indices, radiiModulo = 1000L, radiiForPrint = c(1)){
+                                    indices, radiiModulo = 1000L, radiiForPrint = c(1),
+                                    xlim, ylim){
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
   aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = aic.given.radius.and.lag.shrunk, vortices.pp = vortices.pp,
                        scars.pp = scars.pp, sDiv = sDiv, indices = indices, radiiForPrint = radiiForPrint,
-                       startLag = lags[1], radiiModulo = radiiModulo)
+                       startLag = lags[1], radiiModulo = radiiModulo, xlim = xlim, ylim = ylim)
 
   aicMatrix.vortices <- aicMatrices[1, , ]
   aicMatrix.scars <- aicMatrices[2, , ]

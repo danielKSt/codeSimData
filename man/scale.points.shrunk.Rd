@@ -2,7 +2,7 @@
 % Please edit documentation in R/aic_matrices_shrunk_observation.R
 \name{scale.points.shrunk}
 \alias{scale.points.shrunk}
-\title{Function for checking if any of the points are in the shrunk observation window}
+\title{Function for scaling points from a reduced observation window into a "full" observation window}
 \usage{
 \method{scale}{points.shrunk}(points, xlim, ylim)
 }
@@ -14,5 +14,5 @@
 \item{ylim}{how much to shrink the window in the y direction}
 }
 \description{
-Function for checking if any of the points are in the shrunk observation window
+Function for scaling points from a reduced observation window into a "full" observation window
 }

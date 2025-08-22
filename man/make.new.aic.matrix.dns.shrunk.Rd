@@ -12,7 +12,9 @@ make.new.aic.matrix.dns.shrunk(
   sDiv,
   indices,
   radiiModulo = 1000L,
-  radiiForPrint = c(1)
+  radiiForPrint = c(1),
+  xlim,
+  ylim
 )
 }
 \arguments{
@@ -31,6 +33,10 @@ make.new.aic.matrix.dns.shrunk(
 \item{radiiModulo}{parameter for encoding lag and radius into single matrix}
 
 \item{radiiForPrint}{Boolean variable to indicate whether to print progress or not}
+
+\item{xlim}{how much to shrink the window in the x direction}
+
+\item{ylim}{how much to shrink the window in the y direction}
 }
 \description{
 Function for making a new AIC matrix given DNS data
