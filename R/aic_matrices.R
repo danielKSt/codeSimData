@@ -486,7 +486,8 @@ make.new.aic.matrix.dns <- function(radiar, lags, vortices.pp, scars.pp, sDiv,
     aicMatrix.vortices.log <- aicMatrices[3, , ]
     aicMatrix.scars.log <- aicMatrices[4, , ]
     rm(aicMatrices)
-    return(list("aicMatrix.vortices.id" = aicMatrix.vortices, "aicMatrix.scars.id" = aicMatrix.scars))
+    return(list("aicMatrix.vortices.id" = aicMatrix.vortices, "aicMatrix.scars.id" = aicMatrix.scars,
+                "aicMatrix.vortices.log" = aicMatrix.vortices.log, "aicMatrix.scars.log" = aicMatrix.scars.log))
   }
 
   rm(aicMatrices)
