@@ -12,7 +12,8 @@ aic.given.radius.and.lag(
   indices,
   radiiForPrint,
   startLag,
-  radiiModulo = 1000L
+  radiiModulo = 1000L,
+  transformation = "identity"
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ aic.given.radius.and.lag(
 \item{startLag}{First lag, used to decide when to print the radius}
 
 \item{radiiModulo}{Parameter for how to decode the r_and_h_untransformed to r and h}
+
+\item{transformation}{Should the covariate be transformed, if value is "log" then a log transformation is applied}
 }
 \description{
 Function for making a new AIC matrix given DNS data for a given radius and lag

@@ -14,7 +14,8 @@ aic.given.radius.and.lag.shrunk(
   startLag,
   radiiModulo = 1000L,
   xlim,
-  ylim
+  ylim,
+  transformation = "identity"
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ aic.given.radius.and.lag.shrunk(
 \item{xlim}{how much to shrink the window in the x direction}
 
 \item{ylim}{how much to shrink the window in the y direction}
+
+\item{transformation}{Should the covariate be transformed, if value is "log" then a log transformation is applied, if value is "both", then the output will be both the transformation for the log and for identity}
 }
 \description{
 Function for making a new AIC matrix given DNS data for a given radius and lag

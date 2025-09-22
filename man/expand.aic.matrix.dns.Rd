@@ -13,7 +13,8 @@ expand.aic.matrix.dns(
   scars.pp,
   sDiv,
   indices,
-  printProgress = TRUE
+  printProgress = TRUE,
+  transformation = "identity"
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ expand.aic.matrix.dns(
 \item{indices}{which indices to use}
 
 \item{printProgress}{Boolean variable to indicate whether to print progress or not}
+
+\item{transformation}{Should the covariate be transformed, if value is "log" then a log transformation is applied}
 }
 \description{
 Function for expanding an AIC matrix given dns data

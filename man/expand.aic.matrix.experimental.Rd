@@ -15,7 +15,8 @@ expand.aic.matrix.experimental(
   indices,
   ensembles,
   printProgress = FALSE,
-  skim = 0
+  skim = 0,
+  transformation = "identity"
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ expand.aic.matrix.experimental(
 \item{printProgress}{Boolean variable to indicate whether to print progress or not}
 
 \item{skim}{number of pixles to skim of the edge}
+
+\item{transformation}{Should the covariate be transformed, if value is "log" then a log transformation is applied}
 }
 \description{
 Function for expanding an AIC matrix given experimental data

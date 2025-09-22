@@ -183,26 +183,43 @@ combine.covariates.betasq.experimental <- function(hDiv, indices, ensembles, h, 
 #' @param ensembles vector of ensembles to use
 #' @param printProgress Boolean variable to indicate whether to print progress or not
 #' @param skim number of pixles to skim of the edge
+#' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied
 #'
 #' @export
 make.new.aic.matrix.experimental <- function(radiar, hmax, vortices.pp, scars.pp, hDiv,
-                                indices, ensembles, printProgress = FALSE, skim = 0){
+                                indices, ensembles, printProgress = FALSE, skim = 0, transformation = "identity"){
   aicMatrix.scars <- matrix(0, nrow = 2*hmax+1, ncol = length(radiar))
   aicMatrix.vortices <- matrix(0, nrow = 2*hmax+1, ncol = length(radiar))
 
+  if(transformation == "both"){
+    aicMatrix.scars.log <- matrix(0, nrow = 2*hmax+1, ncol = length(radiar))
+    aicMatrix.vortices.log <- matrix(0, nrow = 2*hmax+1, ncol = length(radiar))
+  }
   for (r_ind in c(1:length(radiar))) {
     r <- radiar[r_ind]
     if(printProgress){print(r)}
     for (h in c(-hmax:hmax)) {
-      Z <- combine.covariates.experimental(hDiv = hDiv, indices = indices, ensembles = ensembles, r = r, h = h, skim = skim)
+      Z <- combine.covariates.experimental(hDiv = hDiv, indices = indices, ensembles = ensembles,
+                                           r = r, h = h, skim = skim)
+      if(transformation == "log"){ Z <- log(Z)}
       a <- spatstat.model::ppm(vortices.pp ~ Z)
       aicMatrix.vortices[h+hmax+1, r_ind] <- stats::AIC(a)
       b <- spatstat.model::ppm(scars.pp ~ Z)
       aicMatrix.scars[h+hmax+1, r_ind] <- stats::AIC(b)
+      if(transformation == "both"){
+        a <- spatstat.model::ppm(vortices.pp ~ log(Z))
+        aicMatrix.vortices.log[h+hmax+1, r_ind] <- stats::AIC(a)
+        b <- spatstat.model::ppm(scars.pp ~ log(Z))
+        aicMatrix.scars.log[h+hmax+1, r_ind] <- stats::AIC(b)
+      }
     }
   }
 
   rm(a, b, Z, r, h)
+  if(transformation == "both"){
+    return(list("aicMatrix.vortices.id" = aicMatrix.vortices, "aicMatrix.scars.id" = aicMatrix.scars,
+                "aicMatrix.vortices.log" = aicMatrix.vortices.log, "aicMatrix.scars.id.log" = aicMatrix.scars.log))
+  }
   return(list("aicMatrix.vortices" = aicMatrix.vortices, "aicMatrix.scars" = aicMatrix.scars))
 }
 
@@ -219,10 +236,11 @@ make.new.aic.matrix.experimental <- function(radiar, hmax, vortices.pp, scars.pp
 #' @param ensembles vector of ensembles to use
 #' @param printProgress Boolean variable to indicate whether to print progress or not
 #' @param skim number of pixles to skim of the edge
+#' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied
 #'
 #' @export
 expand.aic.matrix.experimental <- function(gamleRadiar, nyeRadiar, hmax, gamleMatriser, vortices.pp, scars.pp, hDiv,
-                              indices, ensembles, printProgress = FALSE, skim = 0){
+                              indices, ensembles, printProgress = FALSE, skim = 0, transformation = "identity"){
 
   aicMatrix.scars <- matrix(0, nrow = 2*hmax+1, ncol = length(gamleRadiar)+length(nyeRadiar))
   aicMatrix.vortices <- matrix(0, nrow = 2*hmax+1, ncol = length(gamleRadiar)+length(nyeRadiar))
@@ -230,10 +248,16 @@ expand.aic.matrix.experimental <- function(gamleRadiar, nyeRadiar, hmax, gamleMa
   aicMatrix.scars[1:(2*hmax+1), gamleRadiar] <- gamleMatriser$aicMatrix.scars
   aicMatrix.vortices[1:(2*hmax+1), gamleRadiar] <- gamleMatriser$aicMatrix.vortices
 
+  if(!(transformation == "identity")){
+    print("Not implemented yet")
+    return(gamleMatriser)
+  }
+
   for (r in nyeRadiar) {
     if(printProgress){print(r)}
     for (h in c(-hmax:hmax)) {
-      Z <- combine.covariates.experimental(hDiv = hDiv, indices = indices, ensembles = ensembles, r = r, h = h, skim = skim)
+      Z <- combine.covariates.experimental(hDiv = hDiv, indices = indices, ensembles = ensembles,
+                                           r = r, h = h, skim = skim)
       a <- spatstat.model::ppm(vortices.pp ~ Z)
       aicMatrix.vortices[h+hmax+1, r] <- stats::AIC(a)
       b <- spatstat.model::ppm(scars.pp ~ Z)
@@ -397,17 +421,25 @@ combine.covariates.betasq.dns <- function(sDiv, indices, h){
 #' @param radiiForPrint which radii to print
 #' @param startLag First lag, used to decide when to print the radius
 #' @param radiiModulo Parameter for how to decode the r_and_h_untransformed to r and h
+#' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied
 #'
 #' @export
 aic.given.radius.and.lag <- function(r_and_h_untransformed, vortices.pp, scars.pp, sDiv,
-                                    indices, radiiForPrint, startLag, radiiModulo = 1000L){
+                                    indices, radiiForPrint, startLag, radiiModulo = 1000L, transformation = "identity"){
   r <- r_and_h_untransformed %% radiiModulo
   h <- (r_and_h_untransformed - r)/radiiModulo
 
   if((r %in% radiiForPrint) && (h == startLag)) {print(r)}
   Z <- combine.covariates.dns(sDiv = sDiv, indices = indices, r = r, h = h)
+  if(transformation == "log"){Z <- log(Z)}
   vort.fit <- spatstat.model::ppm(vortices.pp ~ Z)
   scar.fit <- spatstat.model::ppm(scars.pp ~ Z)
+  if(transformation == "both"){
+    vort.fit.log <- spatstat.model::ppm(vortices.pp ~ log(Z))
+    scar.fit.log <- spatstat.model::ppm(scars.pp ~ log(Z))
+    rm(Z, r, h)
+    return(c(stats::AIC(vort.fit), stats::AIC(scar.fit), stats::AIC(vort.fit.log), stats::AIC(scar.fit.log)))
+  }
 
   rm(Z, r, h)
   return(c(stats::AIC(vort.fit), stats::AIC(scar.fit)))
@@ -438,33 +470,26 @@ make.input.matrix <- function(radiar, lags, radiiModulo = 1000L){
 #' @param indices which indices to use
 #' @param radiiModulo parameter for encoding lag and radius into single matrix
 #' @param radiiForPrint Boolean variable to indicate whether to print progress or not
+#' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied
 #'
 #' @export
 make.new.aic.matrix.dns <- function(radiar, lags, vortices.pp, scars.pp, sDiv,
-                                             indices, radiiModulo = 1000L, radiiForPrint = c(1)){
+                                             indices, radiiModulo = 1000L, radiiForPrint = c(1), transformation = "identity"){
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
   aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = aic.given.radius.and.lag, vortices.pp = vortices.pp,
                        scars.pp = scars.pp, sDiv = sDiv, indices = indices, radiiForPrint = radiiForPrint,
-                       startLag = lags[1], radiiModulo = radiiModulo)
-
-  # aicMatrix.scars <- matrix(0, nrow = length(lags), ncol = length(radiar))
-  # aicMatrix.vortices <- matrix(0, nrow = length(lags), ncol = length(radiar))
-
-  # for (r in radiar) {
-  #   for (h in lags) {
-  #     if(printProgress){print(c(r, h))}
-  #     Z <- combine.covariates.dns(sDiv = sDiv, indices = indices, r = r, h = h)
-  #     a <- spatstat.model::ppm(vortices.pp ~ Z)
-  #     aicMatrix.vortices[which(lags == h), r] <- stats::AIC(a)
-  #     b <- spatstat.model::ppm(scars.pp ~ Z)
-  #     aicMatrix.scars[which(lags == h), r] <- stats::AIC(b)
-  #   }
-  # }
+                       startLag = lags[1], radiiModulo = radiiModulo, transformation = transformation)
 
   aicMatrix.vortices <- aicMatrices[1, , ]
   aicMatrix.scars <- aicMatrices[2, , ]
-  rm(aicMatrices)
+  if(transformation == "both"){
+    aicMatrix.vortices.log <- aicMatrices[3, , ]
+    aicMatrix.scars.log <- aicMatrices[4, , ]
+    rm(aicMatrices)
+    return(list("aicMatrix.vortices.id" = aicMatrix.vortices, "aicMatrix.scars.id" = aicMatrix.scars))
+  }
 
+  rm(aicMatrices)
   return(list("aicMatrix.vortices" = aicMatrix.vortices, "aicMatrix.scars" = aicMatrix.scars))
 }
 
@@ -478,10 +503,16 @@ make.new.aic.matrix.dns <- function(radiar, lags, vortices.pp, scars.pp, sDiv,
 #' @param sDiv horisontal divergence
 #' @param indices which indices to use
 #' @param printProgress Boolean variable to indicate whether to print progress or not
+#' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied
 #'
 #' @export
 expand.aic.matrix.dns <- function(gamleRadiar, nyeRadiar, lags, gamleMatriser, vortices.pp, scars.pp, sDiv,
-                                           indices, printProgress = TRUE){
+                                           indices, printProgress = TRUE, transformation = "identity"){
+
+  if(!(transformation == "identity")){
+    print("Not implemented yet")
+    return(gamleMatriser)
+  }
 
   aicMatrix.scars <- matrix(0, nrow = length(lags), ncol = length(gamleRadiar)+length(nyeRadiar))
   aicMatrix.vortices <- matrix(0, nrow = length(lags), ncol = length(gamleRadiar)+length(nyeRadiar))

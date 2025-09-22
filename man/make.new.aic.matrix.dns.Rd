@@ -12,7 +12,8 @@ make.new.aic.matrix.dns(
   sDiv,
   indices,
   radiiModulo = 1000L,
-  radiiForPrint = c(1)
+  radiiForPrint = c(1),
+  transformation = "identity"
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ make.new.aic.matrix.dns(
 \item{radiiModulo}{parameter for encoding lag and radius into single matrix}
 
 \item{radiiForPrint}{Boolean variable to indicate whether to print progress or not}
+
+\item{transformation}{Should the covariate be transformed, if value is "log" then a log transformation is applied}
 }
 \description{
 Function for making a new AIC matrix given DNS data

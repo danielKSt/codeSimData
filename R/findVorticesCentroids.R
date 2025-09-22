@@ -121,6 +121,7 @@ explore.scar <- function(pixels, dims, np, skimage){
     np <- reticulate::import("numpy")
   }
   if(is.null(skimage)){
+    reticulate::py_require("scikit-image")
     skimage <- reticulate::import("skimage.morphology")
   }
   noPixels <- dim(pixels)[1]
@@ -175,6 +176,7 @@ find.scars.specific.time <- function(scarData, np, skimage){
     np <- reticulate::import("numpy")
   }
   if(is.null(skimage)){
+    reticulate::py_require("scikit-image")
     skimage <- reticulate::import("skimage.morphology")
   }
   numberOfScars <- 0
@@ -236,6 +238,7 @@ find.scars.specific.time <- function(scarData, np, skimage){
 #' @returns List of dataframes of scar data for each timestep
 #' @export
 find.scars.over.time <- function(scarData){
+  reticulate::py_require("scikit-image")
   skimage <- reticulate::import("skimage.morphology")
   np <- reticulate::import("numpy")
   endTimestep <- dim(scarData)[1]
@@ -261,6 +264,7 @@ skeletonize_object_py <- function(df, np, skimage) {
     np <- reticulate::import("numpy")
   }
   if(is.null(skimage)){
+    reticulate::py_require("scikit-image")
     skimage <- reticulate::import("skimage.morphology")
   }
   # Create binary image matrix
@@ -303,6 +307,7 @@ find.scars.centrelines.specific.time <- function(scarData, np = NULL, skimage = 
     np <- reticulate::import("numpy")
   }
   if(is.null(skimage)){
+    reticulate::py_require("scikit-image")
     skimage <- reticulate::import("skimage.morphology")
   }
   numberOfScars <- 0

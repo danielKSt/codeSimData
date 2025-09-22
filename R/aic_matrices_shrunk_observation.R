@@ -225,12 +225,11 @@ combine.covariates.betasq.dns.shrunk <- function(sDiv, indices, h, xlim, ylim){
   }
 
   combinedCovariates <- combine.covariates.matrices(covariates = covariatesToCombine, xdim = xdimShrunk, ydim = ydimShrunk)
-
   Z <- spatstat.geom::im(t(combinedCovariates),
                          seq(from = 0, to = 1,length = xdimShrunk),
                          seq(from = 0, to = numberOfPictures, length = ydimShrunk*numberOfPictures))
-  rm(covariatesToCombine, xdimShrunk, ydimShrunk, numberOfPictures, sDiv, h)
 
+  rm(covariatesToCombine, xdimShrunk, ydimShrunk, numberOfPictures, sDiv, h)
   return(Z)
 }
 
@@ -245,16 +244,27 @@ combine.covariates.betasq.dns.shrunk <- function(sDiv, indices, h, xlim, ylim){
 #' @param radiiModulo Parameter for how to decode the r_and_h_untransformed to r and h
 #' @param xlim how much to shrink the window in the x direction
 #' @param ylim how much to shrink the window in the y direction
+#' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied, if value is "both", then the output will be both the transformation for the log and for identity
 #'
 #' @export
 aic.given.radius.and.lag.shrunk <- function(r_and_h_untransformed, vortices.pp, scars.pp, sDiv,
                                      indices, radiiForPrint, startLag, radiiModulo = 1000L,
-                                     xlim, ylim){
+                                     xlim, ylim, transformation = "identity"){
   r <- r_and_h_untransformed %% radiiModulo
   h <- (r_and_h_untransformed - r)/radiiModulo
 
   if((r %in% radiiForPrint) && (h == startLag)) {print(r)}
   Z <- combine.covariates.dns.shrunk(sDiv = sDiv, indices = indices, r = r, h = h, xlim = xlim, ylim = ylim)
+  if(transformation == "log"){Z <- log(Z)}
+  if(transformation == "both"){
+    vort.fit.id <- spatstat.model::ppm(vortices.pp ~ Z)
+    scar.fit.id <- spatstat.model::ppm(scars.pp ~ Z)
+
+    vort.fit.log <- spatstat.model::ppm(vortices.pp ~ log(Z))
+    scar.fit.log <- spatstat.model::ppm(scars.pp ~ log(Z))
+
+    return(c(stats::AIC(vort.fit.id), stats::AIC(scar.fit.id), stats::AIC(vort.fit.log), stats::AIC(scar.fit.log)))
+  }
   vort.fit <- spatstat.model::ppm(vortices.pp ~ Z)
   scar.fit <- spatstat.model::ppm(scars.pp ~ Z)
 
@@ -274,19 +284,26 @@ aic.given.radius.and.lag.shrunk <- function(r_and_h_untransformed, vortices.pp, 
 #' @param radiiForPrint Boolean variable to indicate whether to print progress or not
 #' @param xlim how much to shrink the window in the x direction
 #' @param ylim how much to shrink the window in the y direction
+#' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied, if value is "both", then the output will be both the transformation for the log and for identity
 #'
 #' @export
 make.new.aic.matrix.dns.shrunk <- function(radiar, lags, vortices.pp, scars.pp, sDiv,
                                     indices, radiiModulo = 1000L, radiiForPrint = c(1),
-                                    xlim, ylim){
+                                    xlim, ylim, transformation = "identity"){
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
   aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = aic.given.radius.and.lag.shrunk, vortices.pp = vortices.pp,
                        scars.pp = scars.pp, sDiv = sDiv, indices = indices, radiiForPrint = radiiForPrint,
-                       startLag = lags[1], radiiModulo = radiiModulo, xlim = xlim, ylim = ylim)
+                       startLag = lags[1], radiiModulo = radiiModulo, xlim = xlim, ylim = ylim, transformation = transformation)
 
   aicMatrix.vortices <- aicMatrices[1, , ]
   aicMatrix.scars <- aicMatrices[2, , ]
-  rm(aicMatrices)
+  if(transformation == "both"){
+    aicMatrix.vortices.log <- aicMatrices[3, , ]
+    aicMatrix.scars.log <- aicMatrices[4, , ]
+    rm(aicMatrices)
+    return(list("aicMatrix.vortices.id" = aicMatrix.vortices, "aicMatrix.scars.id" = aicMatrix.scars))
+  }
 
+  rm(aicMatrices)
   return(list("aicMatrix.vortices" = aicMatrix.vortices, "aicMatrix.scars" = aicMatrix.scars))
 }
