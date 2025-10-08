@@ -4,14 +4,7 @@
 \alias{aicPlot}
 \title{Function for plotting a snapshot of surface field and surface pp together}
 \usage{
-aicPlot(
-  aicMatrix,
-  lagValues,
-  timeScale,
-  lengthScale,
-  radiar,
-  plotAsContour = FALSE
-)
+aicPlot(aicMatrix, lagValues, timeScale, lengthScale, radiar)
 }
 \arguments{
 \item{aicMatrix}{Matrix with surface field data for the interesting snapshot}
@@ -23,8 +16,6 @@ aicPlot(
 \item{lengthScale}{how many lengthscales per pixle?}
 
 \item{radiar}{description}
-
-\item{plotAsContour}{set to TRUE if you want a contour plot instead of a heatmap}
 }
 \description{
 Function for plotting a snapshot of surface field and surface pp together
