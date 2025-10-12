@@ -4,10 +4,10 @@
 \alias{combine.covariates.betasq.dns}
 \title{Function for creating beta squared covariates for the desired indices for DNS data}
 \usage{
-combine.covariates.betasq.dns(sDiv, indices, h)
+combine.covariates.betasq.dns(hDiv, indices, h)
 }
 \arguments{
-\item{sDiv}{horrisontal divergence complete array}
+\item{hDiv}{horrisontal divergence complete array}
 
 \item{indices}{indices to use points from}
 

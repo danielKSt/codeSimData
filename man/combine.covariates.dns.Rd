@@ -4,10 +4,10 @@
 \alias{combine.covariates.dns}
 \title{Function for creating local variance covariates for the desired indices for DNS data}
 \usage{
-combine.covariates.dns(sDiv, indices, r, h)
+combine.covariates.dns(hDiv, indices, r, h)
 }
 \arguments{
-\item{sDiv}{horrisontal divergence complete array}
+\item{hDiv}{horrisontal divergence complete array}
 
 \item{indices}{indices to use points from}
 

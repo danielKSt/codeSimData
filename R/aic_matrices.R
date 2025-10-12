@@ -173,101 +173,40 @@ combine.covariates.betasq.experimental <- function(hDiv, indices, ensembles, h, 
   return(Z)
 }
 
-#' Function for making a new AIC matrix given experimental data
-#' @param radiar Vector with all radii for local variance
-#' @param hmax Maximal lag
+
+#' Function for making a new AIC matrix given DNS data for a given radius and lag
+#' @param r_and_h_untransformed r_and_h_combined in single number
 #' @param vortices.pp votrices as spatstat point process
 #' @param scars.pp scars as spatstat point process
 #' @param hDiv horisontal divergence
 #' @param indices which indices to use
-#' @param ensembles vector of ensembles to use
-#' @param printProgress Boolean variable to indicate whether to print progress or not
-#' @param skim number of pixles to skim of the edge
+#' @param radiiForPrint which radii to print
+#' @param startLag First lag, used to decide when to print the radius
+#' @param radiiModulo Parameter for how to decode the r_and_h_untransformed to r and h
 #' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied
+#' @param ensembles vector with all ensembles to use
 #'
 #' @export
-make.new.aic.matrix.experimental <- function(radiar, hmax, vortices.pp, scars.pp, hDiv,
-                                indices, ensembles, printProgress = FALSE, skim = 0, transformation = "identity"){
-  aicMatrix.scars <- matrix(0, nrow = 2*hmax+1, ncol = length(radiar))
-  aicMatrix.vortices <- matrix(0, nrow = 2*hmax+1, ncol = length(radiar))
+aic.given.radius.and.lag.experimental <- function(r_and_h_untransformed, vortices.pp, scars.pp, hDiv, ensembles,
+                                     indices, radiiForPrint, startLag, radiiModulo = 1000L, transformation = "identity"){
+  r <- r_and_h_untransformed %% radiiModulo
+  h <- (r_and_h_untransformed - r)/radiiModulo
 
+  if((r %in% radiiForPrint) && (h == startLag)) {print(r)}
+  Z <- combine.covariates.experimental(hDiv = hDiv, indices = indices, ensembles = ensembles, r = r, h = h)
+  if(transformation == "log"){Z <- log(Z)}
+  vort.fit <- spatstat.model::ppm(vortices.pp ~ Z)
+  scar.fit <- spatstat.model::ppm(scars.pp ~ Z)
   if(transformation == "both"){
-    aicMatrix.scars.log <- matrix(0, nrow = 2*hmax+1, ncol = length(radiar))
-    aicMatrix.vortices.log <- matrix(0, nrow = 2*hmax+1, ncol = length(radiar))
-  }
-  for (r_ind in c(1:length(radiar))) {
-    r <- radiar[r_ind]
-    if(printProgress){print(r)}
-    for (h in c(-hmax:hmax)) {
-      Z <- combine.covariates.experimental(hDiv = hDiv, indices = indices, ensembles = ensembles,
-                                           r = r, h = h, skim = skim)
-      if(transformation == "log"){ Z <- log(Z)}
-      a <- spatstat.model::ppm(vortices.pp ~ Z)
-      aicMatrix.vortices[h+hmax+1, r_ind] <- stats::AIC(a)
-      b <- spatstat.model::ppm(scars.pp ~ Z)
-      aicMatrix.scars[h+hmax+1, r_ind] <- stats::AIC(b)
-      if(transformation == "both"){
-        a <- spatstat.model::ppm(vortices.pp ~ log(Z))
-        aicMatrix.vortices.log[h+hmax+1, r_ind] <- stats::AIC(a)
-        b <- spatstat.model::ppm(scars.pp ~ log(Z))
-        aicMatrix.scars.log[h+hmax+1, r_ind] <- stats::AIC(b)
-      }
-    }
+    vort.fit.log <- spatstat.model::ppm(vortices.pp ~ log(Z))
+    scar.fit.log <- spatstat.model::ppm(scars.pp ~ log(Z))
+    rm(Z, r, h)
+    return(c(stats::AIC(vort.fit), stats::AIC(scar.fit), stats::AIC(vort.fit.log), stats::AIC(scar.fit.log)))
   }
 
-  rm(a, b, Z, r, h)
-  if(transformation == "both"){
-    return(list("aicMatrix.vortices.id" = aicMatrix.vortices, "aicMatrix.scars.id" = aicMatrix.scars,
-                "aicMatrix.vortices.log" = aicMatrix.vortices.log, "aicMatrix.scars.id.log" = aicMatrix.scars.log))
-  }
-  return(list("aicMatrix.vortices" = aicMatrix.vortices, "aicMatrix.scars" = aicMatrix.scars))
+  rm(Z, r, h)
+  return(c(stats::AIC(vort.fit), stats::AIC(scar.fit)))
 }
-
-
-#' Function for expanding an AIC matrix given experimental data
-#' @param gamleRadiar Vector with all radii for local variance in the ole AIC matrices
-#' @param nyeRadiar Vector with radii for local variance in expansion
-#' @param hmax Maximal lag
-#' @param gamleMatriser list with the AIC matrices that should be expanded
-#' @param vortices.pp votrices as spatstat point process
-#' @param scars.pp scars as spatstat point process
-#' @param hDiv horisontal divergence
-#' @param indices which indices to use
-#' @param ensembles vector of ensembles to use
-#' @param printProgress Boolean variable to indicate whether to print progress or not
-#' @param skim number of pixles to skim of the edge
-#' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied
-#'
-#' @export
-expand.aic.matrix.experimental <- function(gamleRadiar, nyeRadiar, hmax, gamleMatriser, vortices.pp, scars.pp, hDiv,
-                              indices, ensembles, printProgress = FALSE, skim = 0, transformation = "identity"){
-
-  aicMatrix.scars <- matrix(0, nrow = 2*hmax+1, ncol = length(gamleRadiar)+length(nyeRadiar))
-  aicMatrix.vortices <- matrix(0, nrow = 2*hmax+1, ncol = length(gamleRadiar)+length(nyeRadiar))
-
-  aicMatrix.scars[1:(2*hmax+1), gamleRadiar] <- gamleMatriser$aicMatrix.scars
-  aicMatrix.vortices[1:(2*hmax+1), gamleRadiar] <- gamleMatriser$aicMatrix.vortices
-
-  if(!(transformation == "identity")){
-    print("Not implemented yet")
-    return(gamleMatriser)
-  }
-
-  for (r in nyeRadiar) {
-    if(printProgress){print(r)}
-    for (h in c(-hmax:hmax)) {
-      Z <- combine.covariates.experimental(hDiv = hDiv, indices = indices, ensembles = ensembles,
-                                           r = r, h = h, skim = skim)
-      a <- spatstat.model::ppm(vortices.pp ~ Z)
-      aicMatrix.vortices[h+hmax+1, r] <- stats::AIC(a)
-      b <- spatstat.model::ppm(scars.pp ~ Z)
-      aicMatrix.scars[h+hmax+1, r] <- stats::AIC(b)
-    }
-  }
-  rm(a, b, Z, r, h)
-  return(list("aicMatrix.vortices" = aicMatrix.vortices, "aicMatrix.scars" = aicMatrix.scars))
-}
-
 
 #### DNS data ####
 
@@ -346,19 +285,18 @@ prepare.points.dns <- function(indices, points){
   return(points.pp)
 }
 
-
 #' Function for creating local variance covariates for the desired indices for DNS data
-#' @param sDiv horrisontal divergence complete array
+#' @param hDiv horrisontal divergence complete array
 #' @param indices indices to use points from
 #' @param r radius to use in calculating local variance
 #' @param h lag
 #'
 #' @export
-combine.covariates.dns <- function(sDiv, indices, r, h){
+combine.covariates.dns <- function(hDiv, indices, r, h){
   numberOfPictures <- length(indices)
 
-  xdim <- dim(sDiv)[2]
-  ydim <- dim(sDiv)[3]
+  xdim <- dim(hDiv)[2]
+  ydim <- dim(hDiv)[3]
 
   covariatesToCombine <- vector(mode = "list", length = numberOfPictures)
 
@@ -366,7 +304,7 @@ combine.covariates.dns <- function(sDiv, indices, r, h){
   skall <- t(finn.skall.av.vindauga(vindauga = t(vindauga)))
 
   for (t in 1:numberOfPictures) {
-    insDiv <- sDiv[indices[t]+h, , ]
+    insDiv <- hDiv[indices[t]+h, , ]
     covariatesToCombine[[t]] <- calculateLocVar_periodic(inWin = vindauga, inShell = skall,
                                                          insDiv = insDiv,
                                                          inDims = c(xdim, ydim, dim(vindauga)[2], dim(skall)[2]))
@@ -377,28 +315,27 @@ combine.covariates.dns <- function(sDiv, indices, r, h){
   Z <- spatstat.geom::im(t(combinedCovariates),
                          seq(from = 0, to = 1,length = xdim),
                          seq(from = 0, to = numberOfPictures, length = ydim*numberOfPictures))
-  rm(covariatesToCombine, vindauga, skall, xdim, ydim, numberOfPictures, sDiv, r, h)
+  rm(covariatesToCombine, vindauga, skall, xdim, ydim, numberOfPictures, hDiv, r, h)
 
   return(Z)
 }
 
-
 #' Function for creating beta squared covariates for the desired indices for DNS data
-#' @param sDiv horrisontal divergence complete array
+#' @param hDiv horrisontal divergence complete array
 #' @param indices indices to use points from
 #' @param h lag
 #'
 #' @export
-combine.covariates.betasq.dns <- function(sDiv, indices, h){
+combine.covariates.betasq.dns <- function(hDiv, indices, h){
   numberOfPictures <- length(indices)
 
-  xdim <- dim(sDiv)[2]
-  ydim <- dim(sDiv)[3]
+  xdim <- dim(hDiv)[2]
+  ydim <- dim(hDiv)[3]
 
   covariatesToCombine <- vector(mode = "list", length = numberOfPictures)
 
   for (t in 1:numberOfPictures) {
-    insDiv <- sDiv[indices[t]+h, , ]
+    insDiv <- hDiv[indices[t]+h, , ]
     covariatesToCombine[[t]] <- sum(insDiv^2) * matrix(data = 1, nrow = xdim, ncol = ydim)
   }
 
@@ -407,7 +344,7 @@ combine.covariates.betasq.dns <- function(sDiv, indices, h){
   Z <- spatstat.geom::im(t(combinedCovariates),
                          seq(from = 0, to = 1,length = xdim),
                          seq(from = 0, to = numberOfPictures, length = ydim*numberOfPictures))
-  rm(covariatesToCombine, xdim, ydim, numberOfPictures, sDiv, h)
+  rm(covariatesToCombine, xdim, ydim, numberOfPictures, hDiv, h)
 
   return(Z)
 }
@@ -416,7 +353,7 @@ combine.covariates.betasq.dns <- function(sDiv, indices, h){
 #' @param r_and_h_untransformed r_and_h_combined in single number
 #' @param vortices.pp votrices as spatstat point process
 #' @param scars.pp scars as spatstat point process
-#' @param sDiv horisontal divergence
+#' @param hDiv horisontal divergence
 #' @param indices which indices to use
 #' @param radiiForPrint which radii to print
 #' @param startLag First lag, used to decide when to print the radius
@@ -424,13 +361,13 @@ combine.covariates.betasq.dns <- function(sDiv, indices, h){
 #' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied
 #'
 #' @export
-aic.given.radius.and.lag <- function(r_and_h_untransformed, vortices.pp, scars.pp, sDiv,
+aic.given.radius.and.lag <- function(r_and_h_untransformed, vortices.pp, scars.pp, hDiv,
                                     indices, radiiForPrint, startLag, radiiModulo = 1000L, transformation = "identity"){
   r <- r_and_h_untransformed %% radiiModulo
   h <- (r_and_h_untransformed - r)/radiiModulo
 
   if((r %in% radiiForPrint) && (h == startLag)) {print(r)}
-  Z <- combine.covariates.dns(sDiv = sDiv, indices = indices, r = r, h = h)
+  Z <- combine.covariates.dns(hDiv = hDiv, indices = indices, r = r, h = h)
   if(transformation == "log"){Z <- log(Z)}
   vort.fit <- spatstat.model::ppm(vortices.pp ~ Z)
   scar.fit <- spatstat.model::ppm(scars.pp ~ Z)
@@ -460,25 +397,34 @@ make.input.matrix <- function(radiar, lags, radiiModulo = 1000L){
 }
 
 
-
-#' Function for making a new AIC matrix given DNS data
+#' Function for making a new AIC matrix given data
 #' @param radiar Vector with all radii for local variance
 #' @param lags Vector with all lag values to use
 #' @param vortices.pp votrices as spatstat point process
 #' @param scars.pp scars as spatstat point process
-#' @param sDiv horisontal divergence
+#' @param hDiv horisontal divergence
 #' @param indices which indices to use
+#' @param ensembles Vector of ensembles to make use of, set to NULL if the data is not split into ensembles
+#' @param sim Boolean set to true if the data is simulated with periodic BCs
+#' @param skim Not yet available
 #' @param radiiModulo parameter for encoding lag and radius into single matrix
 #' @param radiiForPrint Boolean variable to indicate whether to print progress or not
 #' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied
 #'
 #' @export
-make.new.aic.matrix.dns <- function(radiar, lags, vortices.pp, scars.pp, sDiv,
-                                             indices, radiiModulo = 1000L, radiiForPrint = c(1), transformation = "identity"){
+make.new.aic.matrix <- function(radiar, lags, vortices.pp, scars.pp, hDiv, indices, ensembles = NULL, sim = TRUE,
+                                skim = 0, radiiForPrint, radiiModulo = 1000L, transformation = "identity"){
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
-  aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = aic.given.radius.and.lag, vortices.pp = vortices.pp,
-                       scars.pp = scars.pp, sDiv = sDiv, indices = indices, radiiForPrint = radiiForPrint,
-                       startLag = lags[1], radiiModulo = radiiModulo, transformation = transformation)
+
+  if(sim){
+    aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = aic.given.radius.and.lag, vortices.pp = vortices.pp,
+                         scars.pp = scars.pp, hDiv = hDiv, indices = indices, radiiForPrint = radiiForPrint,
+                         startLag = lags[1], radiiModulo = radiiModulo, transformation = transformation)
+  } else {
+    aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = aic.given.radius.and.lag.experimental, vortices.pp = vortices.pp,
+                         scars.pp = scars.pp, hDiv = hDiv, indices = indices, radiiForPrint = radiiForPrint, ensembles = ensembles,
+                         startLag = lags[1], radiiModulo = radiiModulo, transformation = transformation)
+  }
 
   aicMatrix.vortices <- aicMatrices[1, , ]
   aicMatrix.scars <- aicMatrices[2, , ]
@@ -491,46 +437,5 @@ make.new.aic.matrix.dns <- function(radiar, lags, vortices.pp, scars.pp, sDiv,
   }
 
   rm(aicMatrices)
-  return(list("aicMatrix.vortices" = aicMatrix.vortices, "aicMatrix.scars" = aicMatrix.scars))
-}
-
-#' Function for expanding an AIC matrix given dns data
-#' @param gamleRadiar Vector with all radii for local variance in the ole AIC matrices
-#' @param nyeRadiar Vector with radii for local variance in expansion
-#' @param lags Vector with all lag values to use
-#' @param gamleMatriser list with the AIC matrices that should be expanded
-#' @param vortices.pp votrices as spatstat point process
-#' @param scars.pp scars as spatstat point process
-#' @param sDiv horisontal divergence
-#' @param indices which indices to use
-#' @param printProgress Boolean variable to indicate whether to print progress or not
-#' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied
-#'
-#' @export
-expand.aic.matrix.dns <- function(gamleRadiar, nyeRadiar, lags, gamleMatriser, vortices.pp, scars.pp, sDiv,
-                                           indices, printProgress = TRUE, transformation = "identity"){
-
-  if(!(transformation == "identity")){
-    print("Not implemented yet")
-    return(gamleMatriser)
-  }
-
-  aicMatrix.scars <- matrix(0, nrow = length(lags), ncol = length(gamleRadiar)+length(nyeRadiar))
-  aicMatrix.vortices <- matrix(0, nrow = length(lags), ncol = length(gamleRadiar)+length(nyeRadiar))
-
-  aicMatrix.scars[1:length(lags), gamleRadiar] <- gamleMatriser$aicMatrix.scars
-  aicMatrix.vortices[1:length(lags), gamleRadiar] <- gamleMatriser$aicMatrix.vortices
-
-  for (r in nyeRadiar) {
-    for (h in lags) {
-      if(printProgress){print(c(r, h))}
-      Z <- combine.covariates.dns(sDiv = sDiv, indices = indices, r = r, h = h)
-      a <- spatstat.model::ppm(vortices.pp ~ Z)
-      aicMatrix.vortices[which(lags == h), r] <- stats::AIC(a)
-      b <- spatstat.model::ppm(scars.pp ~ Z)
-      aicMatrix.scars[which(lags == h), r] <- stats::AIC(b)
-    }
-  }
-  rm(a, b, Z, r, h)
   return(list("aicMatrix.vortices" = aicMatrix.vortices, "aicMatrix.scars" = aicMatrix.scars))
 }
