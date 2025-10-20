@@ -365,8 +365,8 @@ aic.given.radius.and.lag <- function(r_and_h_untransformed, vortices.pp, scars.p
                                     indices, radiiForPrint, startLag, radiiModulo = 1000L, transformation = "identity"){
   r <- r_and_h_untransformed %% radiiModulo
   h <- (r_and_h_untransformed - r)/radiiModulo
-
   if((r %in% radiiForPrint) && (h == startLag)) {print(r)}
+
   Z <- combine.covariates.dns(hDiv = hDiv, indices = indices, r = r, h = h)
   if(transformation == "log"){Z <- log(Z)}
   vort.fit <- spatstat.model::ppm(vortices.pp ~ Z)
