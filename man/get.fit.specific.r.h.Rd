@@ -15,7 +15,7 @@ get.fit.specific.r.h(
   radiiModulo = 1000L,
   radiiForPrint = -1,
   startLag = 0,
-  resType = "aic"
+  resType = "logLik"
 )
 }
 \arguments{
@@ -39,7 +39,7 @@ get.fit.specific.r.h(
 
 \item{startLag}{Integer, if r is in radiiForPrint, and h == startLag, we print r}
 
-\item{resType}{What type of output is desired? Set to "aic" to get the aic of the fitted model. Set to "fit" for the model object}
+\item{resType}{What type of output is desired? Set to "aic" to get the aic of the fitted model. Set to "fit" for the model object. Set to "logLik" for the log-likelihood}
 }
 \description{
 Function for preparing the points, given a list of all points

@@ -4,46 +4,26 @@
 #
 # load(file = "/Users/danielks/Library/CloudStorage/OneDrive-NTNU/PhD/SimData/data/RE1000_WE10/simulatedPoints.RDa")
 # load(file = "/Users/danielks/Library/CloudStorage/OneDrive-NTNU/PhD/SimData/data/RE1000_WE10/scales.RDa")
-# field <- h5read(file = "/Users/danielks/Library/CloudStorage/OneDrive-NTNU/PhD/SimData/data/RE1000_WEinf/RE1000_WE10_vorticity_z_0.000.mat", name = 'vortZ')
+# field <- h5read(file = "/Users/danielks/Library/CloudStorage/OneDrive-NTNU/PhD/SimData/data/RE1000_WE10/RE1000_WE10_vorticity_z_0.000.mat", name = 'vortZ')
 #
 # # Test that basic components work: ----
 #
 # noFrames <- length(simulatedVortices)
 # startTime <- 1L
-# tidspunkt <- c(1, 50)
 # tidspunkt <- seq(from = startTime, to = noFrames, by = as.integer(ceiling(timescale)))
 # rm(startTime, noFrames)
-# r <- 15
+# r <- 5
 # l <- dim(field)[2]/lengthscale
-# plot(x = simulatedVortices[[tidspunkt[1]]]$x*l, y = simulatedVortices[[tidspunkt[1]]]$y*l,
-#      xlim = c(0,l), ylim = c(0,l))
 #
-# image(field[tidspunkt[1], , ])
-# points(x = simulatedVortices[[tidspunkt[1]]]$x, y = simulatedVortices[[tidspunkt[1]]]$y)
+# scars_list <- make.points.list(points_list = simulatedScars, l = dim(field)[2]/lengthscale, tidspunkt = tidspunkt)
+# dimples_list <- make.points.list(points_list = simulatedVortices, # l = 1, tidspunkt = tidspunkt)
+#                                  l = dim(field)[2]/lengthscale, tidspunkt = tidspunkt)
+# field_list <- lapply(X = tidspunkt, FUN = surf.transform.specific.t,
+#                      field = field, l = l, vindauga = "infty")
 #
-# scar_list <- make.points.list(points_list = simulatedScars, l = dim(field)[2]/lengthscale, tidspunkt = tidspunkt)
-# dimples_list <- make.points.list(points_list = simulatedVortices, l = dim(field)[2]/lengthscale, tidspunkt = tidspunkt)
-# plot(dimples_list[[1]])
+# df <- spatstat.geom::hyperframe(scars = scars_list, dimples = dimples_list, field = field_list)
 #
-# vindauga <- t(finn.vindauga.sirkel(radius = r))
-# skall <- t(finn.skall.av.vindauga(vindauga = t(vindauga)))
-#
-# a <- select.image.in.field(t = tidspunkt[1], field = field, l = dim(field)[2]/lengthscale)
-# plot(a)
-#
-# locVar_raw <- calculateLocVar_periodic(inWin = vindauga, inShell = skall,
-#                                        insDiv = field[tidspunkt[1], , ],
-#                                        inDims = c(dim(field)[2], dim(field)[3], dim(vindauga)[2], dim(skall)[2]))
-# locVar <- matrix(data = locVar_raw, nrow = dim(field)[2], ncol = dim(field)[3])
-#
-# image(field[tidspunkt[1], , ])
-# plot(a)
-# b <- select.image.in.field(t = tidspunkt[1], field = field, l = dim(field)[2]/lengthscale, vindauga = vindauga, skall = skall)
-#
-# image(locVar)
-# plot(b)
-#
-# b_inf <- select.image.in.field(t = tidspunkt[1], field = field, l = dim(field)[2]/lengthscale, vindauga = "infty", skall = skall)
+# mppm(scars ~ log(field), data = df)
 #
 #
 # # Test of more complex functions work: ----
@@ -104,12 +84,8 @@ surf.transform.specific.t <- function(t, field, l, vindauga = NULL, skall = NULL
                            seq(from = 0, to = l, length = dim(field)[3]))
     return(Z)
   } else if(is.character(vindauga)) {
-    ms_field <- sum(field[t, , ]^2)
-    covar <- matrix(data = 1, nrow = dim(field)[2], ncol = dim(field)[3])
-    Z <- spatstat.geom::im(covar*ms_field,
-                           seq(from = 0, to = l, length = dim(field)[2]),
-                           seq(from = 0, to = l, length = dim(field)[3]))
-    return(Z)
+    ms_field <- mean(field[t, , ]^2)
+    return(ms_field)
   } else {
     locVar <- matrix(data = calculateLocVar_periodic(inWin = vindauga, inShell = skall,
                                        insDiv = field[t, , ],
@@ -135,10 +111,10 @@ surf.transform.specific.t <- function(t, field, l, vindauga = NULL, skall = NULL
 #' @param radiiModulo Parameter for the case where we use a single number for both r and h
 #' @param radiiForPrint Vector of all radii where we should print the radius
 #' @param startLag Integer, if r is in radiiForPrint, and h == startLag, we print r
-#' @param resType What type of output is desired? Set to "aic" to get the aic of the fitted model. Set to "fit" for the model object
+#' @param resType What type of output is desired? Set to "aic" to get the aic of the fitted model. Set to "fit" for the model object. Set to "logLik" for the log-likelihood
 #'
 #' @export
-get.fit.specific.r.h <- function(scars_list, dimples_list, l, field, tidspunkt, r, h = 0, radiiModulo = 1000L, radiiForPrint = -1, startLag = 0, resType = "aic"){
+get.fit.specific.r.h <- function(scars_list, dimples_list, l, field, tidspunkt, r, h = 0, radiiModulo = 1000L, radiiForPrint = -1, startLag = 0, resType = "logLik"){
   if(is.null(h)){
     r_and_h_untransformed <- r
     r <- r_and_h_untransformed %% radiiModulo
@@ -151,11 +127,13 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l, field, tidspunkt, 
 
   if(r == 0){
     vindauga <- NULL
+    skall <- NULL
   } else if(is.numeric(r)) {
     vindauga <- t(finn.vindauga.sirkel(radius = r))
     skall <- t(finn.skall.av.vindauga(vindauga = t(vindauga)))
   } else {
     vindauga <- "infty"
+    skall <- NULL
   }
   field_list <- lapply(X = tidspunkt, FUN = surf.transform.specific.t,
                        field = field, l = l, vindauga = vindauga, skall = skall)
@@ -165,7 +143,9 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l, field, tidspunkt, 
   scars.fit <- spatstat.model::mppm(formula = scars ~ field, data = df)
   dimples_log.fit <- spatstat.model::mppm(formula = dimples ~ log(field), data = df)
   dimples.fit <- spatstat.model::mppm(formula = dimples ~ field, data = df)
-  if(resType == "aic"){
+  if(resType == "logLik"){
+    return(c(stats::logLik(scars_log.fit), stats::logLik(dimples_log.fit), stats::logLik(scars.fit), stats::logLik(dimples.fit)))
+  } else if(resType == "aic"){
     return(c(stats::AIC(scars_log.fit), stats::AIC(dimples_log.fit), stats::AIC(scars.fit), stats::AIC(dimples.fit)))
   } else if (resType == "fit"){
     return(list(scars.fit = scars_log.fit, dimples.fit = dimples_log.fit, scars_noLog.fit = scars.fit, dimples_noLog.fit = dimples.fit))

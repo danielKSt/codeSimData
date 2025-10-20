@@ -5,7 +5,7 @@
 myMean.pixels.crossing.border <- function(pixelCoords, modNum){
   pixelCoords <- pixelCoords*(pixelCoords < floor(modNum/2)) +
     (pixelCoords - modNum)*(pixelCoords >= floor(modNum/2))
-  return(c(mean(pixelCoords), max(pixelCoords)-min(pixelCoords)))
+  return(c(mean(pixelCoords)%%modNum, max(pixelCoords)-min(pixelCoords)))
 }
 
 #' Function used to find vortex properties given all the pixels in the vortex
