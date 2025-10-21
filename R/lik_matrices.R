@@ -179,5 +179,30 @@ make.aic.matrix <- function(scars_list, dimples_list, l, field, tidspunkt, radia
   return(list(scars = res.scars, dimples = res.dimples, scars.noLog = res.scars_logless, dimples.noLog = res.dimples_logless))
 }
 
+#' Function to make an aic matrix using spatstats mppm function
+#' @param scars_list Complete list of scars for all timesteps
+#' @param dimples_list Complete list of dimples for all timesteps
+#' @param l Side length of window
+#' @param field TxMxN array with surface field
+#' @param tidspunkt vector with timesteps to use for inference
+#' @param radiar radiar
+#' @param lags lags
+#' @param radiiModulo Parameter for the case where we use a single number for both r and h
+#' @param radiiForPrint Vector of all radii where we should print the radius
+#'
+#' @export
+make.logLik.matrix <- function(scars_list, dimples_list, l, field, tidspunkt, radiar, lags, radiiModulo = 1000L, radiiForPrint){
+  inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
 
+  logLikMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.fit.specific.r.h, scars_list = scars_list, l = l,
+                       dimples_list = dimples_list, field = field, tidspunkt = tidspunkt, radiiForPrint = radiiForPrint,
+                       startLag = lags[1], radiiModulo = radiiModulo, h = NULL, resType = "logLik")
+
+  res.scars <- logLikMatrices[1, , ]
+  res.dimples <- logLikMatrices[2, , ]
+  res.scars_logless <- logLikMatrices[3, , ]
+  res.dimples_logless <- logLikMatrices[4, , ]
+
+  return(list(scars = res.scars, dimples = res.dimples, scars.noLog = res.scars_logless, dimples.noLog = res.dimples_logless))
+}
 
