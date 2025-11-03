@@ -128,7 +128,13 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
   }
   scars_list <- make.points.list(points_list = scars_list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
   dimples_list <- make.points.list(points_list = dimples_list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
-  tidspunkt <- tidspunkt + h
+  if(is.numeric(tidspunkt)){
+    tidspunkt <- tidspunkt + h
+  } else {
+    for(t_ind in 1:length(tidspunkt)){
+      tidspunkt[[t_ind]][2] <- tidspunkt[[t_ind]][2] + h
+    }
+  }
 
   if(r == 0){
     vindauga <- NULL
