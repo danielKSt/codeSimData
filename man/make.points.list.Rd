@@ -4,12 +4,14 @@
 \alias{make.points.list}
 \title{Function for preparing the points, given a list of all points}
 \usage{
-make.points.list(points_list, l, tidspunkt)
+make.points.list(points_list, l_x, l_y, tidspunkt)
 }
 \arguments{
 \item{points_list}{List of all points in a unit square}
 
-\item{l}{Sidelength of box, both for scaling points up to correct size, and to create owin objects}
+\item{l_x}{Sidelength of box, both for scaling points up to correct size, and to create owin objects}
+
+\item{l_y}{Sidelength of box, both for scaling points up to correct size, and to create owin objects}
 
 \item{tidspunkt}{Timesteps to use for list}
 }

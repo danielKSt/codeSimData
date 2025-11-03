@@ -7,7 +7,8 @@
 get.fit.specific.r.h(
   scars_list,
   dimples_list,
-  l,
+  l_x,
+  l_y,
   field,
   tidspunkt,
   r,
@@ -23,7 +24,9 @@ get.fit.specific.r.h(
 
 \item{dimples_list}{Complete list of dimples for all timesteps}
 
-\item{l}{Side length of window}
+\item{l_x}{Side length of observation window in x direction}
+
+\item{l_y}{Side length of observation window in y direction}
 
 \item{field}{TxMxN array with surface field}
 

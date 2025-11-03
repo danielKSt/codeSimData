@@ -25,7 +25,7 @@
 #' Function for preparing the points, given a list of all points
 #' @param points_list List of all points in a unit square
 #' @param l_x Sidelength of box, both for scaling points up to correct size, and to create owin objects
-#' @param l_x Sidelength of box, both for scaling points up to correct size, and to create owin objects
+#' @param l_y Sidelength of box, both for scaling points up to correct size, and to create owin objects
 #' @param tidspunkt Timesteps to use for list
 #'
 #' @export

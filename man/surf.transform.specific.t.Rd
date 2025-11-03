@@ -2,21 +2,23 @@
 % Please edit documentation in R/lik_matrices.R
 \name{surf.transform.specific.t}
 \alias{surf.transform.specific.t}
-\title{Function for preparing the points, given a list of all points}
+\title{Transform the scalar field with either the local variance for a given window, or the full window MSE}
 \usage{
-surf.transform.specific.t(t, field, l, vindauga = NULL, skall = NULL)
+surf.transform.specific.t(t, field, l_x, l_y, vindauga = NULL, skall = NULL)
 }
 \arguments{
-\item{t}{Timestep to use of array}
+\item{t}{Timestep to use of array, or a vector of the form}
 
 \item{field}{TxMxN array with field to be transformed into covariate}
 
-\item{l}{Side length of observation window}
+\item{l_x}{Side length of observation window in x direction}
+
+\item{l_y}{Side length of observation window in y direction}
 
 \item{vindauga}{window to use for the calculation of local variance}
 
 \item{skall}{shell of window to be used for calculation of local variance}
 }
 \description{
-Function for preparing the points, given a list of all points
+Transform the scalar field with either the local variance for a given window, or the full window MSE
 }
