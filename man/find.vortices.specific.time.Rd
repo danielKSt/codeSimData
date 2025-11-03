@@ -4,10 +4,12 @@
 \alias{find.vortices.specific.time}
 \title{Function to go from complete mapped vortex pixel data to the point process format of vortex data}
 \usage{
-find.vortices.specific.time(vortexData)
+find.vortices.specific.time(vortexData, periodic = TRUE)
 }
 \arguments{
 \item{vortexData}{Matrix of zeros and ones, where the ones are the pixels with a vortex on them}
+
+\item{periodic}{Set to TRUE if data is generated with periodic boundary conditions}
 }
 \value{
 Dataframe with vortex data

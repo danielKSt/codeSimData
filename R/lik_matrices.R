@@ -2,100 +2,104 @@
 # library(codeSimData)
 # library(spatstat)
 #
-# load(file = "/Users/danielks/Library/CloudStorage/OneDrive-NTNU/PhD/SimData/data/RE1000_WE10/simulatedPoints.RDa")
-# load(file = "/Users/danielks/Library/CloudStorage/OneDrive-NTNU/PhD/SimData/data/RE1000_WE10/scales.RDa")
-# field <- h5read(file = "/Users/danielks/Library/CloudStorage/OneDrive-NTNU/PhD/SimData/data/RE1000_WE10/RE1000_WE10_vorticity_z_0.000.mat", name = 'vortZ')
+# load("/Users/danielks/Library/CloudStorage/OneDrive-NTNU/PhD/SimData/data/structures/pointsP50.RDa")
+# load("/Users/danielks/Library/CloudStorage/OneDrive-NTNU/PhD/SimData/data/scales/p50.RDa")
+# hDiv <- h5read(file = "/Volumes/LaCie/Daniel/Experimental/p50_h390.h5", name = "hDiv")
 #
-# # Test that basic components work: ----
+# field <- hDiv[1, , , ]
+# image(field[1, , ])
+# image(hDiv[1, 1, , ])
+# tidspunkt <- list(c(1, 23), c(1, 50), c(2, 10), c(2, 50))
 #
-# noFrames <- length(simulatedVortices)
-# startTime <- 1L
-# tidspunkt <- seq(from = startTime, to = noFrames, by = as.integer(ceiling(timescale)))
-# rm(startTime, noFrames)
-# r <- 5
-# l <- dim(field)[2]/lengthscale
+# a <- make.points.list(points_list = dimples, l_x = dim(hDiv)[3]/lengthscale, l_y = dim(hDiv)[4]/lengthscale, tidspunkt = tidspunkt)
+# plot(a[[1]])
 #
-# scars_list <- make.points.list(points_list = simulatedScars, l = dim(field)[2]/lengthscale, tidspunkt = tidspunkt)
-# dimples_list <- make.points.list(points_list = simulatedVortices, # l = 1, tidspunkt = tidspunkt)
-#                                  l = dim(field)[2]/lengthscale, tidspunkt = tidspunkt)
-# field_list <- lapply(X = tidspunkt, FUN = surf.transform.specific.t,
-#                      field = field, l = l, vindauga = "infty")
+# b <- surf.transform.specific.t(t = c(1, 1), field = hDiv, l_x = dim(hDiv)[3]/lengthscale, l_y = dim(hDiv)[4]/lengthscale, vindauga = NULL)
+# b <- surf.transform.specific.t(t = c(1, 1), field = hDiv, l_x = dim(hDiv)[3]/lengthscale, l_y = dim(hDiv)[4]/lengthscale, vindauga = "NULL")
 #
-# df <- spatstat.geom::hyperframe(scars = scars_list, dimples = dimples_list, field = field_list)
-#
-# mppm(scars ~ log(field), data = df)
-#
-#
-# # Test of more complex functions work: ----
-# fit_test <- get.fit.specific.r.h(scars_list = simulatedScars, dimples_list = simulatedVortices, l = dim(field)[2]/lengthscale,
-#                      field = field, tidspunkt = seq(from = 1, to = length(simulatedVortices), by = ceiling(timescale)), r = 15, h = 0, resType = "fit")
-#
-# plot(fit_test$dimples.fit)
-# summary(fit_test$dimples.fit)
-#
-# radiar <- seq(from = 1, to = 22, by = 4)
-# lags <- seq(from = -50, to = 50, by = 10)
-#
-# inputMatrix <- make.input.matrix(radiar = seq(from = 1, to = 22, by = 4), lags = seq(from = -50, to = 50, by = 10))
-#
-# test_aic_mat <- make.aic.matrix(scars_list = simulatedScars,
-#                 dimples_list = simulatedVortices,
-#                 l = dim(field)[2]/lengthscale,
-#                 field = field,
-#                 tidspunkt = seq(from = 51, to = length(simulatedVortices)-51, by = ceiling(timescale)),
-#                 radiar = seq(from = 1, to = 22, by = 4),
-#                 lags = seq(from = -50, to = 50, by = 10),
-#                 radiiForPrint = seq(from = 1, to = 22, by = 4))
-#
-# test_aic_fullWindow <- get.fit.specific.r.h(scars_list = simulatedScars, dimples_list = simulatedVortices, l = dim(field)[2]/lengthscale,
-#                                             field = field, tidspunkt = seq(from = 1, to = length(simulatedVortices), by = ceiling(timescale)), r = "infty", h = 0, resType = "fit")
+# vindauga <- t(finn.vindauga.sirkel(radius = 5))
+# skall <- t(finn.skall.av.vindauga(vindauga = t(vindauga)))
+# b <- surf.transform.specific.t(t = c(1, 1), field = hDiv, l_x = dim(hDiv)[3]/lengthscale, l_y = dim(hDiv)[4]/lengthscale, vindauga = vindauga, skall = skall)
+# plot(b)
 
 #' Function for preparing the points, given a list of all points
 #' @param points_list List of all points in a unit square
-#' @param l Sidelength of box, both for scaling points up to correct size, and to create owin objects
+#' @param l_x Sidelength of box, both for scaling points up to correct size, and to create owin objects
+#' @param l_x Sidelength of box, both for scaling points up to correct size, and to create owin objects
 #' @param tidspunkt Timesteps to use for list
 #'
 #' @export
-make.points.list <- function(points_list, l, tidspunkt){
+make.points.list <- function(points_list, l_x, l_y, tidspunkt){
   res <- vector(mode = "list", length = length(tidspunkt))
-  for(i in 1:length(tidspunkt)){
-    t <- tidspunkt[i]
-    if(is.numeric(points_list[[t]])){
-      res[[i]] <- spatstat.geom::ppp(x = c(), y = c(), c(0,l), c(0,l))
-    } else {
-      res[[i]] <- spatstat.geom::ppp(x = points_list[[t]]$x*l, y = points_list[[t]]$y*l, c(0,l), c(0,l))
+  if(is.numeric(tidspunkt)){
+    for(i in 1:length(tidspunkt)){
+      t <- tidspunkt[i]
+      if(is.numeric(points_list[[t]])){
+        res[[i]] <- spatstat.geom::ppp(x = c(), y = c(), c(0,l_x), c(0,l_y))
+      } else {
+        res[[i]] <- spatstat.geom::ppp(x = points_list[[t]]$x*l_x, y = points_list[[t]]$y*l_y, c(0,l_x), c(0,l_y))
+      }
+    }
+  } else {
+    for(i in 1:length(tidspunkt)){
+      ensemble <- tidspunkt[[i]][1]
+      t <- tidspunkt[[i]][2]
+      if(is.numeric(points_list[[ensemble]][[t]])){
+        res[[i]] <- spatstat.geom::ppp(x = c(), y = c(), c(0,l_x), c(0,l_y))
+      } else {
+        res[[i]] <- spatstat.geom::ppp(x = points_list[[ensemble]][[t]]$x*l_x, y = points_list[[ensemble]][[t]]$y*l_y, c(0,l_x), c(0,l_y))
+      }
     }
   }
   return(res)
 }
 
-#' Function for preparing the points, given a list of all points
+#' Transform the scalar field with either the local variance for a given window, or the full window MSE
 #' @param field TxMxN array with field to be transformed into covariate
-#' @param l Side length of observation window
-#' @param t Timestep to use of array
+#' @param l_x Side length of observation window in x direction
+#' @param l_y Side length of observation window in y direction
+#' @param t Timestep to use of array, or a vector of the form
 #' @param vindauga window to use for the calculation of local variance
 #' @param skall shell of window to be used for calculation of local variance
 #'
 #' @export
-surf.transform.specific.t <- function(t, field, l, vindauga = NULL, skall = NULL){
+surf.transform.specific.t <- function(t, field, l_x, l_y, vindauga = NULL, skall = NULL){
+  periodic <- TRUE
+  if(length(t) == 2){
+    field <- field[t[1], , , ]
+    t <- t[2]
+    periodic <- FALSE
+  }
   if(is.null(vindauga)){
     Z <- spatstat.geom::im(t(field[t, , ]),
-                           seq(from = 0, to = l, length = dim(field)[2]),
-                           seq(from = 0, to = l, length = dim(field)[3]))
+                           seq(from = 0, to = l_x, length = dim(field)[2]),
+                           seq(from = 0, to = l_y, length = dim(field)[3]))
     return(Z)
   } else if(is.character(vindauga)) {
     ms_field <- mean(field[t, , ]^2)
     return(ms_field)
   } else {
-    locVar <- matrix(data = calculateLocVar_periodic(inWin = vindauga, inShell = skall,
-                                       insDiv = field[t, , ],
-                                       inDims = c(dim(field)[2], dim(field)[3], dim(vindauga)[2], dim(skall)[2])),
-                     nrow = dim(field)[2], ncol = dim(field)[3])
+    if(!periodic){
+      locVar <- matrix(data = calculateLocVar_physical(inWin = vindauga, inShell = skall,
+                                                       insDiv = field[t, , ],
+                                                       inDims = c(dim(field)[2], dim(field)[3], dim(vindauga)[2], dim(skall)[2])),
+                       nrow = dim(field)[2], ncol = dim(field)[3])
 
-    Z <- spatstat.geom::im(t(locVar),
-                           seq(from = 0, to = l, length = dim(field)[2]),
-                           seq(from = 0, to = l, length = dim(field)[3]))
-    return(Z)
+      Z <- spatstat.geom::im(t(locVar),
+                             seq(from = 0, to = l_x, length = dim(field)[2]),
+                             seq(from = 0, to = l_y, length = dim(field)[3]))
+      return(Z)
+    } else {
+      locVar <- matrix(data = calculateLocVar_periodic(inWin = vindauga, inShell = skall,
+                                                       insDiv = field[t, , ],
+                                                       inDims = c(dim(field)[2], dim(field)[3], dim(vindauga)[2], dim(skall)[2])),
+                       nrow = dim(field)[2], ncol = dim(field)[3])
+
+      Z <- spatstat.geom::im(t(locVar),
+                             seq(from = 0, to = l_x, length = dim(field)[2]),
+                             seq(from = 0, to = l_y, length = dim(field)[3]))
+      return(Z)
+    }
   }
 }
 
@@ -103,7 +107,8 @@ surf.transform.specific.t <- function(t, field, l, vindauga = NULL, skall = NULL
 #' Function for preparing the points, given a list of all points
 #' @param scars_list Complete list of scars for all timesteps
 #' @param dimples_list Complete list of dimples for all timesteps
-#' @param l Side length of window
+#' @param l_x Side length of observation window in x direction
+#' @param l_y Side length of observation window in y direction
 #' @param field TxMxN array with surface field
 #' @param tidspunkt vector with timesteps to use for inference
 #' @param r radius
@@ -114,15 +119,15 @@ surf.transform.specific.t <- function(t, field, l, vindauga = NULL, skall = NULL
 #' @param resType What type of output is desired? Set to "aic" to get the aic of the fitted model. Set to "fit" for the model object. Set to "logLik" for the log-likelihood
 #'
 #' @export
-get.fit.specific.r.h <- function(scars_list, dimples_list, l, field, tidspunkt, r, h = 0, radiiModulo = 1000L, radiiForPrint = -1, startLag = 0, resType = "logLik"){
+get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, r, h = 0, radiiModulo = 1000L, radiiForPrint = -1, startLag = 0, resType = "logLik"){
   if(is.null(h)){
     r_and_h_untransformed <- r
     r <- r_and_h_untransformed %% radiiModulo
     h <- (r_and_h_untransformed - r)/radiiModulo
     if((r %in% radiiForPrint) && (h == startLag)) {print(r)}
   }
-  scars_list <- make.points.list(points_list = scars_list, l = l, tidspunkt = tidspunkt)
-  dimples_list <- make.points.list(points_list = dimples_list, l = l, tidspunkt = tidspunkt)
+  scars_list <- make.points.list(points_list = scars_list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
+  dimples_list <- make.points.list(points_list = dimples_list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
   tidspunkt <- tidspunkt + h
 
   if(r == 0){
@@ -136,7 +141,7 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l, field, tidspunkt, 
     skall <- NULL
   }
   field_list <- lapply(X = tidspunkt, FUN = surf.transform.specific.t,
-                       field = field, l = l, vindauga = vindauga, skall = skall)
+                       field = field, l_x = l_x, l_y = l_y, vindauga = vindauga, skall = skall)
 
   df <- spatstat.geom::hyperframe(scars = scars_list, dimples = dimples_list, field = field_list)
   scars_log.fit <- spatstat.model::mppm(formula = scars ~ log(field), data = df)
@@ -155,7 +160,8 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l, field, tidspunkt, 
 #' Function to make an aic matrix using spatstats mppm function
 #' @param scars_list Complete list of scars for all timesteps
 #' @param dimples_list Complete list of dimples for all timesteps
-#' @param l Side length of window
+#' @param l_x Side length of observation window in x direction
+#' @param l_y Side length of observation window in y direction
 #' @param field TxMxN array with surface field
 #' @param tidspunkt vector with timesteps to use for inference
 #' @param radiar radiar
@@ -164,10 +170,10 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l, field, tidspunkt, 
 #' @param radiiForPrint Vector of all radii where we should print the radius
 #'
 #' @export
-make.aic.matrix <- function(scars_list, dimples_list, l, field, tidspunkt, radiar, lags, radiiModulo = 1000L, radiiForPrint){
+make.aic.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, radiar, lags, radiiModulo = 1000L, radiiForPrint){
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
 
-  aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.fit.specific.r.h, scars_list = scars_list, l = l,
+  aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.fit.specific.r.h, scars_list = scars_list, l_x = l_x, l_y = l_y,
                        dimples_list = dimples_list, field = field, tidspunkt = tidspunkt, radiiForPrint = radiiForPrint,
                        startLag = lags[1], radiiModulo = radiiModulo, h = NULL, resType = "aic")
 
@@ -182,7 +188,8 @@ make.aic.matrix <- function(scars_list, dimples_list, l, field, tidspunkt, radia
 #' Function to make an aic matrix using spatstats mppm function
 #' @param scars_list Complete list of scars for all timesteps
 #' @param dimples_list Complete list of dimples for all timesteps
-#' @param l Side length of window
+#' @param l_x Side length of observation window in x direction
+#' @param l_y Side length of observation window in y direction
 #' @param field TxMxN array with surface field
 #' @param tidspunkt vector with timesteps to use for inference
 #' @param radiar radiar
@@ -191,10 +198,10 @@ make.aic.matrix <- function(scars_list, dimples_list, l, field, tidspunkt, radia
 #' @param radiiForPrint Vector of all radii where we should print the radius
 #'
 #' @export
-make.logLik.matrix <- function(scars_list, dimples_list, l, field, tidspunkt, radiar, lags, radiiModulo = 1000L, radiiForPrint){
+make.logLik.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, radiar, lags, radiiModulo = 1000L, radiiForPrint){
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
 
-  logLikMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.fit.specific.r.h, scars_list = scars_list, l = l,
+  logLikMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.fit.specific.r.h, scars_list = scars_list, l_x = l_x, l_y = l_y,
                        dimples_list = dimples_list, field = field, tidspunkt = tidspunkt, radiiForPrint = radiiForPrint,
                        startLag = lags[1], radiiModulo = radiiModulo, h = NULL, resType = "logLik")
 

@@ -4,10 +4,12 @@
 \alias{find.vortices.over.time}
 \title{Function to create a complete timeseries of all the vortex point process data}
 \usage{
-find.vortices.over.time(vortexData)
+find.vortices.over.time(vortexData, periodic = TRUE)
 }
 \arguments{
 \item{vortexData}{T by M by N binary matrix, where a one at (t, m, n) indicates there is a vortex at pixel (m,n) at timestep t.}
+
+\item{periodic}{Set to TRUE if data is generated with periodic boundary conditions}
 }
 \value{
 List of dataframes of vortex data for each timestep

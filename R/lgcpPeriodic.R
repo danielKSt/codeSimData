@@ -6,16 +6,6 @@
 #' @param limX How far to go in x-direction
 #' @param limY How far to go in y-direction
 #'
-#' @examples
-#' a <- matrix(data = simu.periodic.grf.2d(discParamX = 256,
-#'                                         theta = c(0.1, 5),
-#'                                         plotResult = TRUE), ncol = 256)
-#' lambda <- exp(3*a+2)
-#' summary(as.vector(lambda))
-#' b <- simu.pp.from.intensity(lambda = lambda, discParamX = 256)
-#' plot(b)
-#' image(lambda)
-#'
 #' @importFrom dplyr filter select
 #' @importFrom rlang .data
 #' @export

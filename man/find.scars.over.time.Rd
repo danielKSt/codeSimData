@@ -4,10 +4,12 @@
 \alias{find.scars.over.time}
 \title{Function to create a complete timeseries of all the scar point process data}
 \usage{
-find.scars.over.time(scarData)
+find.scars.over.time(scarData, periodic = TRUE)
 }
 \arguments{
 \item{scarData}{T by M by N binary array, where a one at (t, m, n) indicates there is a scar at pixel (m,n) at timestep t.}
+
+\item{periodic}{Set to TRUE if data is generated with periodic boundary conditions}
 }
 \value{
 List of dataframes of scar data for each timestep

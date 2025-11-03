@@ -26,14 +26,3 @@ simu.pp.from.intensity(
 \description{
 Function to simulate inhomogeneous poisson point process
 }
-\examples{
-a <- matrix(data = simu.periodic.grf.2d(discParamX = 256,
-                                        theta = c(0.1, 5),
-                                        plotResult = TRUE), ncol = 256)
-lambda <- exp(3*a+2)
-summary(as.vector(lambda))
-b <- simu.pp.from.intensity(lambda = lambda, discParamX = 256)
-plot(b)
-image(lambda)
-
-}

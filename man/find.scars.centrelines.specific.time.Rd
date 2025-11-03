@@ -4,7 +4,12 @@
 \alias{find.scars.centrelines.specific.time}
 \title{Function to go from complete mapped scar pixel data to the point process format of scar data}
 \usage{
-find.scars.centrelines.specific.time(scarData, np = NULL, skimage = NULL)
+find.scars.centrelines.specific.time(
+  scarData,
+  np = NULL,
+  skimage = NULL,
+  periodic = TRUE
+)
 }
 \arguments{
 \item{scarData}{Matrix of zeros and ones, where the ones are the pixels with a scar on them}
@@ -12,6 +17,8 @@ find.scars.centrelines.specific.time(scarData, np = NULL, skimage = NULL)
 \item{np}{numpy from package reticulate}
 
 \item{skimage}{skimage}
+
+\item{periodic}{Set to TRUE if data is generated with periodic boundary conditions}
 }
 \value{
 Dataframe with scar data
