@@ -14,7 +14,9 @@ make.logLik.matrix(
   radiar,
   lags,
   radiiModulo = 1000L,
-  radiiForPrint
+  radiiForPrint,
+  printProgressComplete = FALSE,
+  fitLogless = FALSE
 )
 }
 \arguments{
@@ -37,6 +39,10 @@ make.logLik.matrix(
 \item{radiiModulo}{Parameter for the case where we use a single number for both r and h}
 
 \item{radiiForPrint}{Vector of all radii where we should print the radius}
+
+\item{printProgressComplete}{Set to TRUE if you want detailed updates on the progress}
+
+\item{fitLogless}{Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm}
 }
 \description{
 Function to make an aic matrix using spatstats mppm function

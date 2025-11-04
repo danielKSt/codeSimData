@@ -14,7 +14,8 @@ make.aic.matrix(
   radiar,
   lags,
   radiiModulo = 1000L,
-  radiiForPrint
+  radiiForPrint,
+  fitLogless = fitLogless
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ make.aic.matrix(
 \item{radiiModulo}{Parameter for the case where we use a single number for both r and h}
 
 \item{radiiForPrint}{Vector of all radii where we should print the radius}
+
+\item{fitLogless}{Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm}
 }
 \description{
 Function to make an aic matrix using spatstats mppm function

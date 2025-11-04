@@ -117,23 +117,40 @@ surf.transform.specific.t <- function(t, field, l_x, l_y, vindauga = NULL, skall
 #' @param radiiForPrint Vector of all radii where we should print the radius
 #' @param startLag Integer, if r is in radiiForPrint, and h == startLag, we print r
 #' @param resType What type of output is desired? Set to "aic" to get the aic of the fitted model. Set to "fit" for the model object. Set to "logLik" for the log-likelihood
+#' @param printProgressComplete Set to TRUE if you want detailed updates on the progress
+#' @param fitLogless Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm
 #'
 #' @export
-get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, r, h = 0, radiiModulo = 1000L, radiiForPrint = -1, startLag = 0, resType = "logLik"){
+get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, r, h = 0, radiiModulo = 1000L,
+                                 radiiForPrint = -1, startLag = 0,
+                                 resType = "logLik", printProgressComplete = FALSE, fitLogless = FALSE){
   if(is.null(h)){
     r_and_h_untransformed <- r
     r <- r_and_h_untransformed %% radiiModulo
     h <- (r_and_h_untransformed - r)/radiiModulo
     if((r %in% radiiForPrint) && (h == startLag)) {print(r)}
   }
+  if(printProgressComplete){
+    time_prev <- Sys.time()
+  }
   scars_list <- make.points.list(points_list = scars_list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
   dimples_list <- make.points.list(points_list = dimples_list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
+  if(printProgressComplete){
+    time_curr <- Sys.time()
+    print(paste("Time on preparing scars and dimples for r = ", r, ", h = ", h, ":", time_curr-time_prev, sep = ""))
+    time_prev <- time_curr
+  }
   if(is.numeric(tidspunkt)){
     tidspunkt <- tidspunkt + h
   } else {
     for(t_ind in 1:length(tidspunkt)){
       tidspunkt[[t_ind]][2] <- tidspunkt[[t_ind]][2] + h
     }
+  }
+  if(printProgressComplete){
+    time_curr <- Sys.time()
+    print(paste("Time on applying lag for r = ", r, ", h = ", h, ":", time_curr-time_prev, sep = ""))
+    time_prev <- time_curr
   }
 
   if(r == 0){
@@ -148,18 +165,42 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
   }
   field_list <- lapply(X = tidspunkt, FUN = surf.transform.specific.t,
                        field = field, l_x = l_x, l_y = l_y, vindauga = vindauga, skall = skall)
+  if(printProgressComplete){
+    time_curr <- Sys.time()
+    print(paste("Time on transforming spatial field for r = ", r, ", h = ", h, ":", time_curr-time_prev, sep = ""))
+    time_prev <- time_curr
+  }
 
   df <- spatstat.geom::hyperframe(scars = scars_list, dimples = dimples_list, field = field_list)
   scars_log.fit <- spatstat.model::mppm(formula = scars ~ log(field), data = df)
-  scars.fit <- spatstat.model::mppm(formula = scars ~ field, data = df)
   dimples_log.fit <- spatstat.model::mppm(formula = dimples ~ log(field), data = df)
-  dimples.fit <- spatstat.model::mppm(formula = dimples ~ field, data = df)
+  if(fitLogless){
+    dimples.fit <- spatstat.model::mppm(formula = dimples ~ field, data = df)
+    scars.fit <- spatstat.model::mppm(formula = scars ~ field, data = df)
+  }
+  if(printProgressComplete){
+    time_curr <- Sys.time()
+    print(paste("Time on fitting model for r = ", r, ", h = ", h, ":", time_curr-time_prev, sep = ""))
+    time_prev <- time_curr
+  }
   if(resType == "logLik"){
-    return(c(stats::logLik(scars_log.fit), stats::logLik(dimples_log.fit), stats::logLik(scars.fit), stats::logLik(dimples.fit)))
+    if(fitLogless){
+      return(c(stats::logLik(scars_log.fit), stats::logLik(dimples_log.fit), stats::logLik(scars.fit), stats::logLik(dimples.fit)))
+    } else {
+      return(c(stats::logLik(scars_log.fit), stats::logLik(dimples_log.fit)))
+    }
   } else if(resType == "aic"){
-    return(c(stats::AIC(scars_log.fit), stats::AIC(dimples_log.fit), stats::AIC(scars.fit), stats::AIC(dimples.fit)))
+    if(fitLogless){
+      return(c(stats::AIC(scars_log.fit), stats::AIC(dimples_log.fit), stats::AIC(scars.fit), stats::AIC(dimples.fit)))
+    } else {
+      return(c(stats::AIC(scars_log.fit), stats::AIC(dimples_log.fit)))
+    }
   } else if (resType == "fit"){
-    return(list(scars.fit = scars_log.fit, dimples.fit = dimples_log.fit, scars_noLog.fit = scars.fit, dimples_noLog.fit = dimples.fit))
+    if(fitLogless){
+      return(list(scars.fit = scars_log.fit, dimples.fit = dimples_log.fit, scars_noLog.fit = scars.fit, dimples_noLog.fit = dimples.fit))
+    } else {
+      return(list(scars.fit = scars_log.fit, dimples.fit = dimples_log.fit))
+    }
   }
 }
 
@@ -174,21 +215,26 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
 #' @param lags lags
 #' @param radiiModulo Parameter for the case where we use a single number for both r and h
 #' @param radiiForPrint Vector of all radii where we should print the radius
+#' @param fitLogless Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm
 #'
 #' @export
-make.aic.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, radiar, lags, radiiModulo = 1000L, radiiForPrint){
+make.aic.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, radiar, lags,
+                            radiiModulo = 1000L, radiiForPrint, fitLogless = fitLogless){
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
 
   aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.fit.specific.r.h, scars_list = scars_list, l_x = l_x, l_y = l_y,
                        dimples_list = dimples_list, field = field, tidspunkt = tidspunkt, radiiForPrint = radiiForPrint,
-                       startLag = lags[1], radiiModulo = radiiModulo, h = NULL, resType = "aic")
+                       startLag = lags[1], radiiModulo = radiiModulo, h = NULL, resType = "aic", fitLogless = fitLogless)
 
   res.scars <- aicMatrices[1, , ]
   res.dimples <- aicMatrices[2, , ]
-  res.scars_logless <- aicMatrices[3, , ]
-  res.dimples_logless <- aicMatrices[4, , ]
-
-  return(list(scars = res.scars, dimples = res.dimples, scars.noLog = res.scars_logless, dimples.noLog = res.dimples_logless))
+  if(fitLogless){
+    res.scars_logless <- aicMatrices[3, , ]
+    res.dimples_logless <- aicMatrices[4, , ]
+    return(list(scars = res.scars, dimples = res.dimples, scars.noLog = res.scars_logless, dimples.noLog = res.dimples_logless))
+  } else {
+    return(list(scars = res.scars, dimples = res.dimples))
+  }
 }
 
 #' Function to make an aic matrix using spatstats mppm function
@@ -202,20 +248,27 @@ make.aic.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt
 #' @param lags lags
 #' @param radiiModulo Parameter for the case where we use a single number for both r and h
 #' @param radiiForPrint Vector of all radii where we should print the radius
+#' @param printProgressComplete Set to TRUE if you want detailed updates on the progress
+#' @param fitLogless Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm
 #'
 #' @export
-make.logLik.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, radiar, lags, radiiModulo = 1000L, radiiForPrint){
+make.logLik.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, radiar, lags, radiiModulo = 1000L,
+                               radiiForPrint, printProgressComplete = FALSE, fitLogless = FALSE){
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
 
   logLikMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.fit.specific.r.h, scars_list = scars_list, l_x = l_x, l_y = l_y,
                        dimples_list = dimples_list, field = field, tidspunkt = tidspunkt, radiiForPrint = radiiForPrint,
-                       startLag = lags[1], radiiModulo = radiiModulo, h = NULL, resType = "logLik")
+                       startLag = lags[1], radiiModulo = radiiModulo, h = NULL, resType = "logLik",
+                       printProgressComplete = printProgressComplete, fitLogless = fitLogless)
 
   res.scars <- logLikMatrices[1, , ]
   res.dimples <- logLikMatrices[2, , ]
-  res.scars_logless <- logLikMatrices[3, , ]
-  res.dimples_logless <- logLikMatrices[4, , ]
-
-  return(list(scars = res.scars, dimples = res.dimples, scars.noLog = res.scars_logless, dimples.noLog = res.dimples_logless))
+  if(fitLogless){
+    res.scars_logless <- logLikMatrices[3, , ]
+    res.dimples_logless <- logLikMatrices[4, , ]
+    return(list(scars = res.scars, dimples = res.dimples, scars.noLog = res.scars_logless, dimples.noLog = res.dimples_logless))
+  } else {
+    return(list(scars = res.scars, dimples = res.dimples))
+  }
 }
 
