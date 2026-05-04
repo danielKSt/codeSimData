@@ -77,7 +77,10 @@ surf.transform.specific.t <- function(t, field, l_x, l_y, vindauga = NULL, skall
     return(Z)
   } else if(is.character(vindauga)) {
     ms_field <- mean(field[t, , ]^2)
-    return(ms_field)
+    Z <- spatstat.geom::im(matrix(data = ms_field, nrow = dim(field)[2], ncol = dim(field)[3]),
+                           seq(from = 0, to = l_x, length = dim(field)[2]),
+                           seq(from = 0, to = l_y, length = dim(field)[3]))
+    return(Z)
   } else {
     if(!periodic){
       locVar <- matrix(data = calculateLocVar_physical(inWin = vindauga, inShell = skall,
@@ -137,7 +140,8 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
   dimples_list <- make.points.list(points_list = dimples_list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
   if(printProgressComplete){
     time_curr <- Sys.time()
-    print(paste("Time on preparing scars and dimples for r = ", r, ", h = ", h, ":", time_curr-time_prev, sep = ""))
+    print(paste("Time on preparing scars and dimples for r = ", r, ", h = ", h, ":  ",
+                difftime(time_curr-time_prev, units = "mins"), "mins" , sep = ""))
     time_prev <- time_curr
   }
   if(is.numeric(tidspunkt)){
@@ -149,7 +153,8 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
   }
   if(printProgressComplete){
     time_curr <- Sys.time()
-    print(paste("Time on applying lag for r = ", r, ", h = ", h, ":", time_curr-time_prev, sep = ""))
+    print(paste("Time on applying lag for r = ", r, ", h = ", h, ":  ",
+                difftime(time_curr-time_prev, units = "mins"), "mins" , sep = ""))
     time_prev <- time_curr
   }
 
@@ -167,7 +172,8 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
                        field = field, l_x = l_x, l_y = l_y, vindauga = vindauga, skall = skall)
   if(printProgressComplete){
     time_curr <- Sys.time()
-    print(paste("Time on transforming spatial field for r = ", r, ", h = ", h, ":", time_curr-time_prev, sep = ""))
+    print(paste("Time on transforming spatial field for r = ", r, ", h = ", h, ":  ",
+                difftime(time_curr-time_prev, units = "mins"), "mins" , sep = ""))
     time_prev <- time_curr
   }
 
@@ -180,7 +186,8 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
   }
   if(printProgressComplete){
     time_curr <- Sys.time()
-    print(paste("Time on fitting model for r = ", r, ", h = ", h, ":", time_curr-time_prev, sep = ""))
+    print(paste("Time on fitting model for r = ", r, ", h = ", h, ":  ",
+                difftime(time_curr-time_prev, units = "mins"), "mins", sep = ""))
     time_prev <- time_curr
   }
   if(resType == "logLik"){

@@ -174,9 +174,13 @@ explore.scar <- function(pixels, dims, np, skimage){
   }
   if(x_shift){
     centre_x <- ((centre_x/dims[1])-0.5) %% 1.0
+  } else {
+    centre_x <- (centre_x/dims[1]) %% 1.0
   }
   if(y_shift){
     centre_y <- ((centre_y/dims[2])-0.5) %% 1.0
+  } else {
+    centre_y <- (centre_y/dims[2]) %% 1.0
   }
   return(c(centre_x, centre_y, noPixels, xStretch, yStretch))
 }

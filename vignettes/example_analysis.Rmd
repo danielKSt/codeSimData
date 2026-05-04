@@ -1,0 +1,156 @@
+---
+title: "Example analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{example_analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(codeSimData)
+library(ggplot2)
+```
+
+# Data preparation and setup
+We first load in surface feature data, identify the feature centres, and load the flow fields.
+
+```{r load_data}
+# Dimples
+dimplesField <- re1000weInf$dimples
+dimples <- find.vortices.over.time(dimplesField)
+
+# Scars
+scarsField <- re1000weInf$scars
+scars <- find.scars.over.time(scarsField)
+
+# Surface divergence and vertical vorticity
+surfDiv <- re1000weInf$surfDiv
+vortZ <- re1000weInf$vortZ
+
+# Integral scales
+lengthscale <- re1000weInf$lengthscale # Pixels per integral length scale
+timescale <- re1000weInf$timescale # Timestep per integral time scale
+```
+
+
+We select which snapshots to use, and which lags to use.
+```{r select_times}
+lags <- c(-1, 0, 1)
+timesteps <- seq(from = 2, to = length(dimples) - max(lags), by = ceiling(timescale))
+radii <- c(1:ceiling(lengthscale*3))
+
+lx <- dim(surfDiv)[2]
+ly <- dim(surfDiv)[3]
+```
+
+# Data analysis
+
+We calculate the profile log likelihood for the global model:
+
+```{r log_lik_global_model}
+logLikGlobal.dimpDiv <- c(1:length(lags))
+logLikGlobal.dimpVort <- c(1:length(lags))
+logLikGlobal.scarDiv <- c(1:length(lags))
+logLikGlobal.scarVort <- c(1:length(lags))
+for (h_ind in 1:length(lags)) {
+  # Log-likelihood for surface divergence
+  res <- get.fit.specific.r.h(scars_list = scars, 
+                              dimples_list = dimples, 
+                              l_x = lx, 
+                              l_y = ly, 
+                              field = surfDiv, 
+                              tidspunkt = timesteps, 
+                              r = "infty", 
+                              h = lags[h_ind], 
+                              resType = "logLik")
+  
+  logLikGlobal.scarDiv[h_ind] <- res[1]
+  logLikGlobal.dimpDiv[h_ind] <- res[2]
+  
+  # Log-likelihood for vertical vorticity
+  res <- get.fit.specific.r.h(scars_list = scars, 
+                              dimples_list = dimples, 
+                              l_x = lx, 
+                              l_y = ly, 
+                              field = vortZ, 
+                              tidspunkt = timesteps, 
+                              r = "infty", 
+                              h = lags[h_ind], 
+                              resType = "logLik")
+  logLikGlobal.scarVort[h_ind] <- res[1]
+  logLikGlobal.dimpVort[h_ind] <- res[2]
+}
+rm(res)
+```
+
+We calculate the profile log likelihood for the local model:
+```{r log_lik_local_model}
+sDiv_log_lik <- make.logLik.matrix(scars_list = scars,
+                   dimples_list = dimples,
+                   l_x = lx,
+                   l_y = ly,
+                   field = surfDiv,
+                   tidspunkt = timesteps,
+                   radiar = radii,
+                   lags = lags,
+                   radiiForPrint = c(2, 5, 10, 20, 30, 40))
+
+vortZ_log_lik <- make.logLik.matrix(scars_list = scars,
+                   dimples_list = dimples,
+                   l_x = lx,
+                   l_y = ly,
+                   field = vortZ,
+                   tidspunkt = timesteps,
+                   radiar = radii,
+                   lags = lags,
+                   radiiForPrint = c(2, 5, 10, 20, 30, 40))
+```
+
+
+# Results and plots
+We compare the global and local models. Positive values here imply the local model outperforms the global model.
+```{r glob_vs_loc}
+print(paste("DimpDiv", max(sDiv_log_lik$dimples) - max(logLikGlobal.dimpDiv)))
+print(paste("DimpVort", max(vortZ_log_lik$dimples) - max(logLikGlobal.dimpVort)))
+print(paste("ScarDiv", max(sDiv_log_lik$scars) - max(logLikGlobal.scarDiv)))
+print(paste("ScarVort", max(vortZ_log_lik$scars) - max(logLikGlobal.scarVort)))
+```
+
+
+We plot the resulting profile log likelihood for the local model.
+```{r plot_data}
+plot_data <- expand.grid(r = radii/lengthscale, tau = lags/timescale)
+plot_data$dimpDiv <- array(t(sDiv_log_lik$dimples))
+plot_data$scarDiv <- array(t(sDiv_log_lik$scars))
+plot_data$dimpVort <- array(t(vortZ_log_lik$dimples))
+plot_data$scarVort <- array(t(vortZ_log_lik$scars))
+
+dimpDiv_plot <- ggplot(data = plot_data, mapping = aes(x = r, y = tau, fill = dimpDiv)) + geom_raster()
+scarDiv_plot <- ggplot(data = plot_data, mapping = aes(x = r, y = tau, fill = scarDiv)) + geom_raster()
+dimpVort_plot <- ggplot(data = plot_data, mapping = aes(x = r, y = tau, fill = dimpVort)) + geom_raster()
+scarVort_plot <- ggplot(data = plot_data, mapping = aes(x = r, y = tau, fill = scarVort)) + geom_raster()
+```
+
+```{r dimpDiv_plot}
+dimpDiv_plot
+```
+
+```{r scarDiv_plot}
+scarDiv_plot
+```
+
+```{r dimpVort_plot}
+dimpVort_plot
+```
+
+```{r scarVort_plot}
+scarVort_plot
+```

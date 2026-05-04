@@ -67,8 +67,8 @@ aicPlot <- function(aicMatrix, lagValues, timeScale, lengthScale, radiar, interp
     data.loc <- expand.grid(r = radiar*lengthScale, h = lagValues*timeScale)
     data.loc$aic <- array(aicMatrix)
   }
-  res <- ggplot(data=data.loc, mapping = aes(x = .data$r, y = .data$h, fill = .data$aic)) +
-    geom_tile()
+  res <- ggplot2::ggplot(data=data.loc, mapping = aes(x = .data$r, y = .data$h, fill = .data$aic)) +
+    ggplot2::geom_raster()
   return(res)
 }
 
