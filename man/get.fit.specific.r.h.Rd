@@ -18,7 +18,8 @@ get.fit.specific.r.h(
   startLag = 0,
   resType = "logLik",
   printProgressComplete = FALSE,
-  fitLogless = FALSE
+  fitLogless = FALSE,
+  localStat = "variance"
 )
 }
 \arguments{
@@ -49,6 +50,9 @@ get.fit.specific.r.h(
 \item{printProgressComplete}{Set to TRUE if you want detailed updates on the progress}
 
 \item{fitLogless}{Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm}
+
+\item{localStat}{Statistic of the window used as covariate, "variance", "meanSquare", "meanAbs" or "mean", see surf.transform.specific.t.
+The log fits need a positive covariate, so "mean" only works for positive fields}
 }
 \description{
 Function for preparing the points, given a list of all points

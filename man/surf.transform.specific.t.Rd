@@ -2,9 +2,17 @@
 % Please edit documentation in R/lik_matrices.R
 \name{surf.transform.specific.t}
 \alias{surf.transform.specific.t}
-\title{Transform the scalar field with either the local variance for a given window, or the full window MSE}
+\title{Transform the scalar field with a local statistic (by default the local variance) for a given window, or the full window MSE}
 \usage{
-surf.transform.specific.t(t, field, l_x, l_y, vindauga = NULL, skall = NULL)
+surf.transform.specific.t(
+  t,
+  field,
+  l_x,
+  l_y,
+  vindauga = NULL,
+  skall = NULL,
+  localStat = "variance"
+)
 }
 \arguments{
 \item{t}{Timestep to use of array, or a vector of the form}
@@ -15,10 +23,16 @@ surf.transform.specific.t(t, field, l_x, l_y, vindauga = NULL, skall = NULL)
 
 \item{l_y}{Side length of observation window in y direction}
 
-\item{vindauga}{window to use for the calculation of local variance}
+\item{vindauga}{window to use for the calculation of the local statistic}
 
-\item{skall}{shell of window to be used for calculation of local variance}
+\item{skall}{shell of window to be used for calculation of the local statistic}
+
+\item{localStat}{Statistic to calculate over the window. "variance" for the local variance, "meanSquare" for the sum
+of the squared values divided by the number of pixels in the window, "meanAbs" for the sum of the absolute values
+divided by the number of pixels in the window, and "mean" for the sum of the values divided by the number of pixels
+in the window. If vindauga is a character, "mean" and "meanAbs" give the mean and the mean absolute value of the full
+field, and the other two give the full window MSE}
 }
 \description{
-Transform the scalar field with either the local variance for a given window, or the full window MSE
+Transform the scalar field with a local statistic (by default the local variance) for a given window, or the full window MSE
 }

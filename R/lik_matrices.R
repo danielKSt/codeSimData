@@ -54,16 +54,22 @@ make.points.list <- function(points_list, l_x, l_y, tidspunkt){
   return(res)
 }
 
-#' Transform the scalar field with either the local variance for a given window, or the full window MSE
+#' Transform the scalar field with a local statistic (by default the local variance) for a given window, or the full window MSE
 #' @param field TxMxN array with field to be transformed into covariate
 #' @param l_x Side length of observation window in x direction
 #' @param l_y Side length of observation window in y direction
 #' @param t Timestep to use of array, or a vector of the form
-#' @param vindauga window to use for the calculation of local variance
-#' @param skall shell of window to be used for calculation of local variance
+#' @param vindauga window to use for the calculation of the local statistic
+#' @param skall shell of window to be used for calculation of the local statistic
+#' @param localStat Statistic to calculate over the window. "variance" for the local variance, "meanSquare" for the sum
+#' of the squared values divided by the number of pixels in the window, "meanAbs" for the sum of the absolute values
+#' divided by the number of pixels in the window, and "mean" for the sum of the values divided by the number of pixels
+#' in the window. If vindauga is a character, "mean" and "meanAbs" give the mean and the mean absolute value of the full
+#' field, and the other two give the full window MSE
 #'
 #' @export
-surf.transform.specific.t <- function(t, field, l_x, l_y, vindauga = NULL, skall = NULL){
+surf.transform.specific.t <- function(t, field, l_x, l_y, vindauga = NULL, skall = NULL, localStat = "variance"){
+  localStat <- match.arg(localStat, choices = c("variance", "meanSquare", "meanAbs", "mean"))
   periodic <- TRUE
   if(length(t) == 2){
     field <- field[t[1], , , ]
@@ -75,28 +81,33 @@ surf.transform.specific.t <- function(t, field, l_x, l_y, vindauga = NULL, skall
     Z <- spatstat.geom::im(t(field[t, , ]), xrange = c(0, l_x), yrange = c(0, l_y))
     return(Z)
   } else if(is.character(vindauga)) {
-    ms_field <- mean(field[t, , ]^2)
+    if(localStat == "mean"){
+      ms_field <- mean(field[t, , ])
+    } else if(localStat == "meanAbs"){
+      ms_field <- mean(abs(field[t, , ]))
+    } else {
+      ms_field <- mean(field[t, , ]^2)
+    }
     Z <- spatstat.geom::im(matrix(data = ms_field, nrow = dim(field)[3], ncol = dim(field)[2]),
                            xrange = c(0, l_x), yrange = c(0, l_y))
     return(Z)
   } else {
     if(!periodic){
-      locVar <- matrix(data = calculateLocVar_physical(inWin = vindauga, inShell = skall,
-                                                       insDiv = field[t, , ],
-                                                       inDims = c(dim(field)[2], dim(field)[3], dim(vindauga)[2], dim(skall)[2])),
-                       nrow = dim(field)[2], ncol = dim(field)[3])
-
-      Z <- spatstat.geom::im(t(locVar), xrange = c(0, l_x), yrange = c(0, l_y))
-      return(Z)
+      calculateLocStat <- switch(localStat, variance = calculateLocVar_physical,
+                                 meanSquare = calculateLocMeanSq_physical, meanAbs = calculateLocMeanAbs_physical,
+                                 mean = calculateLocMean_physical)
     } else {
-      locVar <- matrix(data = calculateLocVar_periodic(inWin = vindauga, inShell = skall,
-                                                       insDiv = field[t, , ],
-                                                       inDims = c(dim(field)[2], dim(field)[3], dim(vindauga)[2], dim(skall)[2])),
-                       nrow = dim(field)[2], ncol = dim(field)[3])
-
-      Z <- spatstat.geom::im(t(locVar), xrange = c(0, l_x), yrange = c(0, l_y))
-      return(Z)
+      calculateLocStat <- switch(localStat, variance = calculateLocVar_periodic,
+                                 meanSquare = calculateLocMeanSq_periodic, meanAbs = calculateLocMeanAbs_periodic,
+                                 mean = calculateLocMean_periodic)
     }
+    locStat <- matrix(data = calculateLocStat(inWin = vindauga, inShell = skall,
+                                              insDiv = field[t, , ],
+                                              inDims = c(dim(field)[2], dim(field)[3], dim(vindauga)[2], dim(skall)[2])),
+                      nrow = dim(field)[2], ncol = dim(field)[3])
+
+    Z <- spatstat.geom::im(t(locStat), xrange = c(0, l_x), yrange = c(0, l_y))
+    return(Z)
   }
 }
 
@@ -116,11 +127,14 @@ surf.transform.specific.t <- function(t, field, l_x, l_y, vindauga = NULL, skall
 #' @param resType What type of output is desired? Set to "aic" to get the aic of the fitted model. Set to "fit" for the model object. Set to "logLik" for the log-likelihood
 #' @param printProgressComplete Set to TRUE if you want detailed updates on the progress
 #' @param fitLogless Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm
+#' @param localStat Statistic of the window used as covariate, "variance", "meanSquare", "meanAbs" or "mean", see surf.transform.specific.t.
+#' The log fits need a positive covariate, so "mean" only works for positive fields
 #'
 #' @export
 get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, r, h = 0, radiiModulo = 1000L,
                                  radiiForPrint = -1, startLag = 0,
-                                 resType = "logLik", printProgressComplete = FALSE, fitLogless = FALSE){
+                                 resType = "logLik", printProgressComplete = FALSE, fitLogless = FALSE,
+                                 localStat = "variance"){
   if(is.null(h)){
     r_and_h_untransformed <- r
     r <- r_and_h_untransformed %% radiiModulo
@@ -163,7 +177,7 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
     skall <- NULL
   }
   field_list <- lapply(X = tidspunkt, FUN = surf.transform.specific.t,
-                       field = field, l_x = l_x, l_y = l_y, vindauga = vindauga, skall = skall)
+                       field = field, l_x = l_x, l_y = l_y, vindauga = vindauga, skall = skall, localStat = localStat)
   if(printProgressComplete){
     time_curr <- Sys.time()
     print(paste("Time on transforming spatial field for r = ", r, ", h = ", h, ":  ",
@@ -217,15 +231,18 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
 #' @param radiiModulo Parameter for the case where we use a single number for both r and h
 #' @param radiiForPrint Vector of all radii where we should print the radius
 #' @param fitLogless Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm
+#' @param localStat Statistic of the window used as covariate, "variance", "meanSquare", "meanAbs" or "mean", see surf.transform.specific.t.
+#' The log fits need a positive covariate, so "mean" only works for positive fields
 #'
 #' @export
 make.aic.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, radiar, lags,
-                            radiiModulo = 1000L, radiiForPrint, fitLogless = fitLogless){
+                            radiiModulo = 1000L, radiiForPrint, fitLogless = fitLogless, localStat = "variance"){
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
 
   aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.fit.specific.r.h, scars_list = scars_list, l_x = l_x, l_y = l_y,
                        dimples_list = dimples_list, field = field, tidspunkt = tidspunkt, radiiForPrint = radiiForPrint,
-                       startLag = lags[1], radiiModulo = radiiModulo, h = NULL, resType = "aic", fitLogless = fitLogless)
+                       startLag = lags[1], radiiModulo = radiiModulo, h = NULL, resType = "aic", fitLogless = fitLogless,
+                       localStat = localStat)
 
   res.scars <- aicMatrices[1, , ]
   res.dimples <- aicMatrices[2, , ]
@@ -251,16 +268,18 @@ make.aic.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt
 #' @param radiiForPrint Vector of all radii where we should print the radius
 #' @param printProgressComplete Set to TRUE if you want detailed updates on the progress
 #' @param fitLogless Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm
+#' @param localStat Statistic of the window used as covariate, "variance", "meanSquare", "meanAbs" or "mean", see surf.transform.specific.t.
+#' The log fits need a positive covariate, so "mean" only works for positive fields
 #'
 #' @export
 make.logLik.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, radiar, lags, radiiModulo = 1000L,
-                               radiiForPrint, printProgressComplete = FALSE, fitLogless = FALSE){
+                               radiiForPrint, printProgressComplete = FALSE, fitLogless = FALSE, localStat = "variance"){
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
 
   logLikMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.fit.specific.r.h, scars_list = scars_list, l_x = l_x, l_y = l_y,
                        dimples_list = dimples_list, field = field, tidspunkt = tidspunkt, radiiForPrint = radiiForPrint,
                        startLag = lags[1], radiiModulo = radiiModulo, h = NULL, resType = "logLik",
-                       printProgressComplete = printProgressComplete, fitLogless = fitLogless)
+                       printProgressComplete = printProgressComplete, fitLogless = fitLogless, localStat = localStat)
 
   res.scars <- logLikMatrices[1, , ]
   res.dimples <- logLikMatrices[2, , ]

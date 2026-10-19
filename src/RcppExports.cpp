@@ -24,6 +24,48 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calculateLocMeanSq_physical
+Rcpp::NumericVector calculateLocMeanSq_physical(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims);
+RcppExport SEXP _codeSimData_calculateLocMeanSq_physical(SEXP inWinSEXP, SEXP inShellSEXP, SEXP insDivSEXP, SEXP inDimsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type inWin(inWinSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type inShell(inShellSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type insDiv(insDivSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type inDims(inDimsSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculateLocMeanSq_physical(inWin, inShell, insDiv, inDims));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calculateLocMean_physical
+Rcpp::NumericVector calculateLocMean_physical(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims);
+RcppExport SEXP _codeSimData_calculateLocMean_physical(SEXP inWinSEXP, SEXP inShellSEXP, SEXP insDivSEXP, SEXP inDimsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type inWin(inWinSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type inShell(inShellSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type insDiv(insDivSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type inDims(inDimsSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculateLocMean_physical(inWin, inShell, insDiv, inDims));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calculateLocMeanAbs_physical
+Rcpp::NumericVector calculateLocMeanAbs_physical(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims);
+RcppExport SEXP _codeSimData_calculateLocMeanAbs_physical(SEXP inWinSEXP, SEXP inShellSEXP, SEXP insDivSEXP, SEXP inDimsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type inWin(inWinSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type inShell(inShellSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type insDiv(insDivSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type inDims(inDimsSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculateLocMeanAbs_physical(inWin, inShell, insDiv, inDims));
+    return rcpp_result_gen;
+END_RCPP
+}
 // calculateLocVar_periodic
 Rcpp::NumericVector calculateLocVar_periodic(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims);
 RcppExport SEXP _codeSimData_calculateLocVar_periodic(SEXP inWinSEXP, SEXP inShellSEXP, SEXP insDivSEXP, SEXP inDimsSEXP) {
@@ -38,10 +80,58 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calculateLocMeanSq_periodic
+Rcpp::NumericVector calculateLocMeanSq_periodic(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims);
+RcppExport SEXP _codeSimData_calculateLocMeanSq_periodic(SEXP inWinSEXP, SEXP inShellSEXP, SEXP insDivSEXP, SEXP inDimsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type inWin(inWinSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type inShell(inShellSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type insDiv(insDivSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type inDims(inDimsSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculateLocMeanSq_periodic(inWin, inShell, insDiv, inDims));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calculateLocMean_periodic
+Rcpp::NumericVector calculateLocMean_periodic(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims);
+RcppExport SEXP _codeSimData_calculateLocMean_periodic(SEXP inWinSEXP, SEXP inShellSEXP, SEXP insDivSEXP, SEXP inDimsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type inWin(inWinSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type inShell(inShellSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type insDiv(insDivSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type inDims(inDimsSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculateLocMean_periodic(inWin, inShell, insDiv, inDims));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calculateLocMeanAbs_periodic
+Rcpp::NumericVector calculateLocMeanAbs_periodic(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims);
+RcppExport SEXP _codeSimData_calculateLocMeanAbs_periodic(SEXP inWinSEXP, SEXP inShellSEXP, SEXP insDivSEXP, SEXP inDimsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type inWin(inWinSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type inShell(inShellSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type insDiv(insDivSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type inDims(inDimsSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculateLocMeanAbs_periodic(inWin, inShell, insDiv, inDims));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_codeSimData_calculateLocVar_physical", (DL_FUNC) &_codeSimData_calculateLocVar_physical, 4},
+    {"_codeSimData_calculateLocMeanSq_physical", (DL_FUNC) &_codeSimData_calculateLocMeanSq_physical, 4},
+    {"_codeSimData_calculateLocMean_physical", (DL_FUNC) &_codeSimData_calculateLocMean_physical, 4},
+    {"_codeSimData_calculateLocMeanAbs_physical", (DL_FUNC) &_codeSimData_calculateLocMeanAbs_physical, 4},
     {"_codeSimData_calculateLocVar_periodic", (DL_FUNC) &_codeSimData_calculateLocVar_periodic, 4},
+    {"_codeSimData_calculateLocMeanSq_periodic", (DL_FUNC) &_codeSimData_calculateLocMeanSq_periodic, 4},
+    {"_codeSimData_calculateLocMean_periodic", (DL_FUNC) &_codeSimData_calculateLocMean_periodic, 4},
+    {"_codeSimData_calculateLocMeanAbs_periodic", (DL_FUNC) &_codeSimData_calculateLocMeanAbs_periodic, 4},
     {NULL, NULL, 0}
 };
 

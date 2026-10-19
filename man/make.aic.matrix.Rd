@@ -15,7 +15,8 @@ make.aic.matrix(
   lags,
   radiiModulo = 1000L,
   radiiForPrint,
-  fitLogless = fitLogless
+  fitLogless = fitLogless,
+  localStat = "variance"
 )
 }
 \arguments{
@@ -40,6 +41,9 @@ make.aic.matrix(
 \item{radiiForPrint}{Vector of all radii where we should print the radius}
 
 \item{fitLogless}{Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm}
+
+\item{localStat}{Statistic of the window used as covariate, "variance", "meanSquare", "meanAbs" or "mean", see surf.transform.specific.t.
+The log fits need a positive covariate, so "mean" only works for positive fields}
 }
 \description{
 Function to make an aic matrix using spatstats mppm function

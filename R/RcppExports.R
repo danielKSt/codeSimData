@@ -14,6 +14,54 @@ calculateLocVar_physical <- function(inWin, inShell, insDiv, inDims) {
     .Call('_codeSimData_calculateLocVar_physical', PACKAGE = 'codeSimData', inWin, inShell, insDiv, inDims)
 }
 
+#' Calculates the local mean square with physical boundary conditions
+#'
+#' For each pixel, the sum of the squared values in the window around it, divided by the number of pixels
+#' of the window that lie inside the field
+#'
+#' @param inWin Window
+#' @param inShell Shell of window
+#' @param insDiv field of which the local mean square should be calculated
+#' @param inDims Integer vector of dimensions for input, should be <xDim, yDim, winDim, shellDim>
+#'
+#' @return Vector with the local mean square
+#' @export
+calculateLocMeanSq_physical <- function(inWin, inShell, insDiv, inDims) {
+    .Call('_codeSimData_calculateLocMeanSq_physical', PACKAGE = 'codeSimData', inWin, inShell, insDiv, inDims)
+}
+
+#' Calculates the local mean with physical boundary conditions
+#'
+#' For each pixel, the sum of the values in the window around it, divided by the number of pixels
+#' of the window that lie inside the field
+#'
+#' @param inWin Window
+#' @param inShell Shell of window
+#' @param insDiv field of which the local mean should be calculated
+#' @param inDims Integer vector of dimensions for input, should be <xDim, yDim, winDim, shellDim>
+#'
+#' @return Vector with the local mean
+#' @export
+calculateLocMean_physical <- function(inWin, inShell, insDiv, inDims) {
+    .Call('_codeSimData_calculateLocMean_physical', PACKAGE = 'codeSimData', inWin, inShell, insDiv, inDims)
+}
+
+#' Calculates the local mean of absolute values with physical boundary conditions
+#'
+#' For each pixel, the sum of the absolute values in the window around it, divided by the number of pixels
+#' of the window that lie inside the field
+#'
+#' @param inWin Window
+#' @param inShell Shell of window
+#' @param insDiv field of which the local mean of absolute values should be calculated
+#' @param inDims Integer vector of dimensions for input, should be <xDim, yDim, winDim, shellDim>
+#'
+#' @return Vector with the local mean of absolute values
+#' @export
+calculateLocMeanAbs_physical <- function(inWin, inShell, insDiv, inDims) {
+    .Call('_codeSimData_calculateLocMeanAbs_physical', PACKAGE = 'codeSimData', inWin, inShell, insDiv, inDims)
+}
+
 #' Calculates the local variance with periodic boundary conditions
 #'
 #' @param inWin Window
@@ -25,5 +73,50 @@ calculateLocVar_physical <- function(inWin, inShell, insDiv, inDims) {
 #' @export
 calculateLocVar_periodic <- function(inWin, inShell, insDiv, inDims) {
     .Call('_codeSimData_calculateLocVar_periodic', PACKAGE = 'codeSimData', inWin, inShell, insDiv, inDims)
+}
+
+#' Calculates the local mean square with periodic boundary conditions
+#'
+#' For each pixel, the sum of the squared values in the window around it, divided by the number of pixels in the window
+#'
+#' @param inWin Window
+#' @param inShell Shell of window
+#' @param insDiv field of which the local mean square should be calculated
+#' @param inDims Integer vector of dimensions for input, should be <xDim, yDim, winDim, shellDim>
+#'
+#' @return Vector with the local mean square
+#' @export
+calculateLocMeanSq_periodic <- function(inWin, inShell, insDiv, inDims) {
+    .Call('_codeSimData_calculateLocMeanSq_periodic', PACKAGE = 'codeSimData', inWin, inShell, insDiv, inDims)
+}
+
+#' Calculates the local mean with periodic boundary conditions
+#'
+#' For each pixel, the sum of the values in the window around it, divided by the number of pixels in the window
+#'
+#' @param inWin Window
+#' @param inShell Shell of window
+#' @param insDiv field of which the local mean should be calculated
+#' @param inDims Integer vector of dimensions for input, should be <xDim, yDim, winDim, shellDim>
+#'
+#' @return Vector with the local mean
+#' @export
+calculateLocMean_periodic <- function(inWin, inShell, insDiv, inDims) {
+    .Call('_codeSimData_calculateLocMean_periodic', PACKAGE = 'codeSimData', inWin, inShell, insDiv, inDims)
+}
+
+#' Calculates the local mean of absolute values with periodic boundary conditions
+#'
+#' For each pixel, the sum of the absolute values in the window around it, divided by the number of pixels in the window
+#'
+#' @param inWin Window
+#' @param inShell Shell of window
+#' @param insDiv field of which the local mean of absolute values should be calculated
+#' @param inDims Integer vector of dimensions for input, should be <xDim, yDim, winDim, shellDim>
+#'
+#' @return Vector with the local mean of absolute values
+#' @export
+calculateLocMeanAbs_periodic <- function(inWin, inShell, insDiv, inDims) {
+    .Call('_codeSimData_calculateLocMeanAbs_periodic', PACKAGE = 'codeSimData', inWin, inShell, insDiv, inDims)
 }
 

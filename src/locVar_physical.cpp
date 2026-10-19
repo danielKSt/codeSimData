@@ -1,18 +1,20 @@
 #include <Rcpp.h>
 #include <vector>
+#include <cmath>
+#include "localStatistics.h"
 
 // [[Rcpp::plugins("cpp11")]]
 
 class LocvarCalculatorPhysical {
 private:
-  int xDim, yDim, winDim, shellDim, divisor, divisorLeft;
-  double xs, x2s, xsLeft, x2sLeft;
+  int xDim, yDim, winDim, shellDim, divisor, divisorLeft, statistic;
+  double xs, x2s, xabs, xsLeft, x2sLeft, xabsLeft;
   std::vector<int> win;
   std::vector<int> shell;
   std::vector<double> sDiv;
   std::vector<double> locvar;
 public:
-  LocvarCalculatorPhysical(int inxDim, int inyDim, int inwinDim, int inShellDim, std::vector<int> inWin, std::vector<int> inShell, std::vector<double> insDiv);
+  LocvarCalculatorPhysical(int inxDim, int inyDim, int inwinDim, int inShellDim, std::vector<int> inWin, std::vector<int> inShell, std::vector<double> insDiv, int inStatistic);
 
   // The main shift functions
   void initialLocvarCalculation();
@@ -34,7 +36,7 @@ public:
 };
 
 
-LocvarCalculatorPhysical::LocvarCalculatorPhysical(int inxDim, int inyDim, int inwinDim, int inShellDim, std::vector<int> inWin, std::vector<int> inShell, std::vector<double> insDiv){
+LocvarCalculatorPhysical::LocvarCalculatorPhysical(int inxDim, int inyDim, int inwinDim, int inShellDim, std::vector<int> inWin, std::vector<int> inShell, std::vector<double> insDiv, int inStatistic){
   xDim = inxDim;
   yDim = inyDim;
   winDim = inwinDim;
@@ -42,6 +44,7 @@ LocvarCalculatorPhysical::LocvarCalculatorPhysical(int inxDim, int inyDim, int i
   win = inWin;
   shell = inShell;
   sDiv = insDiv;
+  statistic = inStatistic;
   initialLocvarCalculation();
   for (int y = 0; y < yDim-1; y++)
   {
@@ -61,6 +64,7 @@ void LocvarCalculatorPhysical::initialLocvarCalculation(){
   int xCoord, yCoord;
   xs = 0;
   x2s = 0;
+  xabs = 0;
   divisor = 0;
   for (int p = 0; p < winDim; p++)
   {
@@ -72,13 +76,15 @@ void LocvarCalculatorPhysical::initialLocvarCalculation(){
     {
       xs += sDiv[xCoord+(xDim*yCoord)];
       x2s += sDiv[xCoord+(xDim*yCoord)]*sDiv[xCoord+(xDim*yCoord)];
+      xabs += std::fabs(sDiv[xCoord+(xDim*yCoord)]);
       divisor += 1;
     }
   }
   xsLeft = xs;
   x2sLeft = x2s;
+  xabsLeft = xabs;
   divisorLeft = divisor;
-  locvar.push_back((x2s - (xs*xs/divisor))/(divisor-1));
+  locvar.push_back(windowStatistic(statistic, xs, x2s, xabs, divisor));
 }
 
 void LocvarCalculatorPhysical::sideshift(int x, int y){
@@ -87,7 +93,7 @@ void LocvarCalculatorPhysical::sideshift(int x, int y){
     sideshift_sub(shell[2*p], shell[2*p+1], shell[2*p+3], shell[2*p-1], x, y);
   }
   sideshift_sub(shell[2*shellDim-2], shell[2*shellDim-1], shell[1], shell[2*shellDim-3], x, y);
-  locvar.push_back((x2s - (xs*xs/divisor))/(divisor-1));
+  locvar.push_back(windowStatistic(statistic, xs, x2s, xabs, divisor));
 }
 
 void LocvarCalculatorPhysical::sideshift_sub(int sx_curr, int sy_curr, int sy_next, int sy_prev, int x, int y){
@@ -106,11 +112,13 @@ void LocvarCalculatorPhysical::sideshift_sub(int sx_curr, int sy_curr, int sy_ne
   if(addToXs && nextInWindow){
     xs += sDiv[current_i+xDim*current_j];
     x2s += sDiv[current_i+xDim*current_j]*sDiv[current_i+xDim*current_j];
+    xabs += std::fabs(sDiv[current_i+xDim*current_j]);
     divisor += 1;
   }
   if(subtractFromXs && prevInWindow){
     xs -= sDiv[prev_i+xDim*current_j];
     x2s -= sDiv[prev_i+xDim*current_j]*sDiv[prev_i+xDim*current_j];
+    xabs -= std::fabs(sDiv[prev_i+xDim*current_j]);
     divisor -= 1;
   }
 }
@@ -121,9 +129,10 @@ void LocvarCalculatorPhysical::upshift(int x, int y){
     upshift_sub(shell[2*p+1], shell[2*p], shell[2*p+2], shell[2*p-2], x, y);
   }
   upshift_sub(shell[2*shellDim-1], shell[2*shellDim-2], shell[0], shell[2*shellDim-4], x, y);
-  locvar.push_back((x2sLeft - (xsLeft*xsLeft/divisorLeft))/(divisorLeft-1));
+  locvar.push_back(windowStatistic(statistic, xsLeft, x2sLeft, xabsLeft, divisorLeft));
   xs = xsLeft;
   x2s = x2sLeft;
+  xabs = xabsLeft;
   divisor = divisorLeft;
 }
 
@@ -143,11 +152,13 @@ void LocvarCalculatorPhysical::upshift_sub(int sy_curr, int sx_curr, int sx_next
   if(addToXs && nextInWindow){
     xsLeft += sDiv[current_i+xDim*current_j];
     x2sLeft += sDiv[current_i+xDim*current_j]*sDiv[current_i+xDim*current_j];
+    xabsLeft += std::fabs(sDiv[current_i+xDim*current_j]);
     divisorLeft += 1;
   }
   if(subtractFromXs && prevInWindow){
     xsLeft -= sDiv[current_i+xDim*prev_j];
     x2sLeft -= sDiv[current_i+xDim*prev_j]*sDiv[current_i+xDim*prev_j];
+    xabsLeft -= std::fabs(sDiv[current_i+xDim*prev_j]);
     divisorLeft -= 1;
   }
 }
@@ -197,17 +208,9 @@ void LocvarCalculatorPhysical::rprintshell(){
 }
 
 
-//' Calculates the local variance with physical boundary conditions
-//'
-//' @param inWin Window
-//' @param inShell Shell of window
-//' @param insDiv field of which the local variance should be calculated
-//' @param inDims Integer vector of dimensions for input, should be <xDim, yDim, winDim, shellDim>
-//'
-//' @return Vector with the local variance
-//' @export
-// [[Rcpp::export]]
-Rcpp::NumericVector calculateLocVar_physical(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims){
+// Calculates the given local statistic (see localStatistics.h) with physical boundary conditions,
+// where pixels of the window outside of the field are left out
+Rcpp::NumericVector calculateLocStat_physical(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims, int statistic){
   // We extract the dimensions
   int xDim = inDims[0];
   int yDim = inDims[1];
@@ -220,7 +223,7 @@ Rcpp::NumericVector calculateLocVar_physical(Rcpp::NumericVector inWin, Rcpp::Nu
   std::vector<double> sDiv = Rcpp::as< std::vector<double> >(insDiv);
 
   // We use the constructor
-  LocvarCalculatorPhysical LocVarCalcInstance = LocvarCalculatorPhysical(xDim, yDim, winDim, shellDim, win, shell, sDiv);
+  LocvarCalculatorPhysical LocVarCalcInstance = LocvarCalculatorPhysical(xDim, yDim, winDim, shellDim, win, shell, sDiv, statistic);
 
   // Some tests for debugging
   //LocVarCalcInstance.rprintsdiv();
@@ -233,4 +236,69 @@ Rcpp::NumericVector calculateLocVar_physical(Rcpp::NumericVector inWin, Rcpp::Nu
   // LocVarCalcInstance.~LocvarCalculatorPhysical();
   // return res;
 return LocVarCalcInstance.returnLocVar();
+}
+
+//' Calculates the local variance with physical boundary conditions
+//'
+//' @param inWin Window
+//' @param inShell Shell of window
+//' @param insDiv field of which the local variance should be calculated
+//' @param inDims Integer vector of dimensions for input, should be <xDim, yDim, winDim, shellDim>
+//'
+//' @return Vector with the local variance
+//' @export
+// [[Rcpp::export]]
+Rcpp::NumericVector calculateLocVar_physical(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims){
+  return calculateLocStat_physical(inWin, inShell, insDiv, inDims, LOCAL_VARIANCE);
+}
+
+//' Calculates the local mean square with physical boundary conditions
+//'
+//' For each pixel, the sum of the squared values in the window around it, divided by the number of pixels
+//' of the window that lie inside the field
+//'
+//' @param inWin Window
+//' @param inShell Shell of window
+//' @param insDiv field of which the local mean square should be calculated
+//' @param inDims Integer vector of dimensions for input, should be <xDim, yDim, winDim, shellDim>
+//'
+//' @return Vector with the local mean square
+//' @export
+// [[Rcpp::export]]
+Rcpp::NumericVector calculateLocMeanSq_physical(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims){
+  return calculateLocStat_physical(inWin, inShell, insDiv, inDims, LOCAL_MEAN_SQUARE);
+}
+
+//' Calculates the local mean with physical boundary conditions
+//'
+//' For each pixel, the sum of the values in the window around it, divided by the number of pixels
+//' of the window that lie inside the field
+//'
+//' @param inWin Window
+//' @param inShell Shell of window
+//' @param insDiv field of which the local mean should be calculated
+//' @param inDims Integer vector of dimensions for input, should be <xDim, yDim, winDim, shellDim>
+//'
+//' @return Vector with the local mean
+//' @export
+// [[Rcpp::export]]
+Rcpp::NumericVector calculateLocMean_physical(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims){
+  return calculateLocStat_physical(inWin, inShell, insDiv, inDims, LOCAL_MEAN);
+}
+
+//' Calculates the local mean of absolute values with physical boundary conditions
+//'
+//' For each pixel, the sum of the absolute values in the window around it, divided by the number of pixels
+//' of the window that lie inside the field
+//'
+//' @param inWin Window
+//' @param inShell Shell of window
+//' @param insDiv field of which the local mean of absolute values should be calculated
+//' @param inDims Integer vector of dimensions for input, should be <xDim, yDim, winDim, shellDim>
+//'
+//' @return Vector with the local mean of absolute values
+//' @export
+// [[Rcpp::export]]
+Rcpp::NumericVector calculateLocMeanAbs_physical(Rcpp::NumericVector inWin, Rcpp::NumericVector inShell, Rcpp::NumericVector insDiv, Rcpp::IntegerVector inDims){
+  return calculateLocStat_physical(inWin, inShell, insDiv, inDims, LOCAL_MEAN_ABS);
 }
