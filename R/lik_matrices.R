@@ -70,16 +70,14 @@ surf.transform.specific.t <- function(t, field, l_x, l_y, vindauga = NULL, skall
     t <- t[2]
     periodic <- FALSE
   }
+  # Pixel k covers ((k-1)*l/N, k*l/N), matching the point coordinates from explore.vortex and explore.scar
   if(is.null(vindauga)){
-    Z <- spatstat.geom::im(t(field[t, , ]),
-                           seq(from = 0, to = l_x, length = dim(field)[2]),
-                           seq(from = 0, to = l_y, length = dim(field)[3]))
+    Z <- spatstat.geom::im(t(field[t, , ]), xrange = c(0, l_x), yrange = c(0, l_y))
     return(Z)
   } else if(is.character(vindauga)) {
     ms_field <- mean(field[t, , ]^2)
-    Z <- spatstat.geom::im(matrix(data = ms_field, nrow = dim(field)[2], ncol = dim(field)[3]),
-                           seq(from = 0, to = l_x, length = dim(field)[2]),
-                           seq(from = 0, to = l_y, length = dim(field)[3]))
+    Z <- spatstat.geom::im(matrix(data = ms_field, nrow = dim(field)[3], ncol = dim(field)[2]),
+                           xrange = c(0, l_x), yrange = c(0, l_y))
     return(Z)
   } else {
     if(!periodic){
@@ -88,9 +86,7 @@ surf.transform.specific.t <- function(t, field, l_x, l_y, vindauga = NULL, skall
                                                        inDims = c(dim(field)[2], dim(field)[3], dim(vindauga)[2], dim(skall)[2])),
                        nrow = dim(field)[2], ncol = dim(field)[3])
 
-      Z <- spatstat.geom::im(t(locVar),
-                             seq(from = 0, to = l_x, length = dim(field)[2]),
-                             seq(from = 0, to = l_y, length = dim(field)[3]))
+      Z <- spatstat.geom::im(t(locVar), xrange = c(0, l_x), yrange = c(0, l_y))
       return(Z)
     } else {
       locVar <- matrix(data = calculateLocVar_periodic(inWin = vindauga, inShell = skall,
@@ -98,9 +94,7 @@ surf.transform.specific.t <- function(t, field, l_x, l_y, vindauga = NULL, skall
                                                        inDims = c(dim(field)[2], dim(field)[3], dim(vindauga)[2], dim(skall)[2])),
                        nrow = dim(field)[2], ncol = dim(field)[3])
 
-      Z <- spatstat.geom::im(t(locVar),
-                             seq(from = 0, to = l_x, length = dim(field)[2]),
-                             seq(from = 0, to = l_y, length = dim(field)[3]))
+      Z <- spatstat.geom::im(t(locVar), xrange = c(0, l_x), yrange = c(0, l_y))
       return(Z)
     }
   }

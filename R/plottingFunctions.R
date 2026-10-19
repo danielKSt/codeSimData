@@ -40,7 +40,8 @@ surface.field.pp.plot <- function(sField, sPPCoords){
   res <- ggplot(data=data.loc, mapping = aes(x = .data$X, y = .data$Y, fill = .data$sField))+
     geom_tile()+
     theme(legend.position = "bottom")+
-    geom_point(data = sPPCoords, mapping = aes(x = .data$x*256, y = .data$y*256, fill = .data$noPixels))
+    geom_point(data = sPPCoords, mapping = aes(x = .data$x*dim(sField)[1] + 0.5, y = .data$y*dim(sField)[2] + 0.5,
+                                               fill = .data$noPixels))
   return(res)
 }
 

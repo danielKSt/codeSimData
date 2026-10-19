@@ -194,9 +194,7 @@ combine.covariates.dns.shrunk <- function(sDiv, indices, r, h, xlim, ylim){
 
   combinedCovariates <- combine.covariates.matrices(covariates = covariatesToCombine, xdim = xdimShrunk, ydim = ydimShrunk)
 
-  Z <- spatstat.geom::im(t(combinedCovariates),
-                         seq(from = 0, to = 1,length = xdimShrunk),
-                         seq(from = 0, to = numberOfPictures, length = ydimShrunk*numberOfPictures))
+  Z <- spatstat.geom::im(t(combinedCovariates), xrange = c(0, 1), yrange = c(0, numberOfPictures))
   rm(covariatesToCombine, vindauga, skall, xdim, ydim, numberOfPictures, sDiv, r, h)
 
   return(Z)
@@ -225,9 +223,7 @@ combine.covariates.betasq.dns.shrunk <- function(sDiv, indices, h, xlim, ylim){
   }
 
   combinedCovariates <- combine.covariates.matrices(covariates = covariatesToCombine, xdim = xdimShrunk, ydim = ydimShrunk)
-  Z <- spatstat.geom::im(t(combinedCovariates),
-                         seq(from = 0, to = 1,length = xdimShrunk),
-                         seq(from = 0, to = numberOfPictures, length = ydimShrunk*numberOfPictures))
+  Z <- spatstat.geom::im(t(combinedCovariates), xrange = c(0, 1), yrange = c(0, numberOfPictures))
 
   rm(covariatesToCombine, xdimShrunk, ydimShrunk, numberOfPictures, sDiv, h)
   return(Z)

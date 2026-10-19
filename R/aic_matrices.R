@@ -130,9 +130,7 @@ combine.covariates.experimental <- function(hDiv, indices, ensembles, r, h, skim
 
   combinedCovariates <- combine.covariates.matrices(covariates = covariatesToCombine, xdim = xdim-2*skim, ydim = ydim-2*skim)
 
-  Z <- spatstat.geom::im(t(combinedCovariates),
-          seq(from = 0, to = 1,length = xdim-2*skim),
-          seq(from = 0, to = numberOfPictures, length = (ydim-2*skim)*numberOfPictures))
+  Z <- spatstat.geom::im(t(combinedCovariates), xrange = c(0, 1), yrange = c(0, numberOfPictures))
   rm(covariatesToCombine, vindauga, skall, xdim, ydim, numberOfPictures, hDiv)
 
   return(Z)
@@ -165,9 +163,7 @@ combine.covariates.betasq.experimental <- function(hDiv, indices, ensembles, h, 
   combinedCovariates <- combine.covariates.matrices(covariates = covariatesToCombine,
                                                     xdim = xdim-2*skim, ydim = ydim-2*skim)
 
-  Z <- spatstat.geom::im(t(combinedCovariates),
-                         seq(from = 0, to = 1,length = xdim-2*skim),
-                         seq(from = 0, to = numberOfPictures, length = (ydim-2*skim)*numberOfPictures))
+  Z <- spatstat.geom::im(t(combinedCovariates), xrange = c(0, 1), yrange = c(0, numberOfPictures))
   rm(covariatesToCombine, xdim, ydim, numberOfPictures, hDiv)
 
   return(Z)
@@ -312,9 +308,7 @@ combine.covariates.dns <- function(hDiv, indices, r, h){
 
   combinedCovariates <- combine.covariates.matrices(covariates = covariatesToCombine, xdim = xdim, ydim = ydim)
 
-  Z <- spatstat.geom::im(t(combinedCovariates),
-                         seq(from = 0, to = 1,length = xdim),
-                         seq(from = 0, to = numberOfPictures, length = ydim*numberOfPictures))
+  Z <- spatstat.geom::im(t(combinedCovariates), xrange = c(0, 1), yrange = c(0, numberOfPictures))
   rm(covariatesToCombine, vindauga, skall, xdim, ydim, numberOfPictures, hDiv, r, h)
 
   return(Z)
@@ -341,9 +335,7 @@ combine.covariates.betasq.dns <- function(hDiv, indices, h){
 
   combinedCovariates <- combine.covariates.matrices(covariates = covariatesToCombine, xdim = xdim, ydim = ydim)
 
-  Z <- spatstat.geom::im(t(combinedCovariates),
-                         seq(from = 0, to = 1,length = xdim),
-                         seq(from = 0, to = numberOfPictures, length = ydim*numberOfPictures))
+  Z <- spatstat.geom::im(t(combinedCovariates), xrange = c(0, 1), yrange = c(0, numberOfPictures))
   rm(covariatesToCombine, xdim, ydim, numberOfPictures, hDiv, h)
 
   return(Z)
