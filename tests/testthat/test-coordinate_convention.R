@@ -62,6 +62,7 @@ test_that("Points look up the local variance of their own pixel", {
 })
 
 test_that("Points in the stacked window look up the covariate value of their own pixel", {
+  withr::local_options(codeSimData.silenceDeprecation = TRUE)
   setup <- make.test.setup()
   vortices <- find.vortices.over.time(vortexData = setup$mask)
   points <- prepare.points.dns(indices = 1:3, points = vortices)

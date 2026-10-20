@@ -1,4 +1,5 @@
-#### Common functions experimental and DNS ####
+# Analysis of experimental data. The snapshots are stacked into one tall image and the model is fitted with ppm from
+# spatstat.
 
 #' Function for combining covariates from multiple snapshots into one single image
 #' @param covariates list of all covariates to combine. Every element should be a matrix of the same dimension
@@ -14,8 +15,6 @@ combine.covariates.matrices <- function(covariates, xdim, ydim){
   rm(covariates, xdim, ydim)
   invisible(covariate)
 }
-
-#### Experimental data ####
 
 #' Function for scaling points to window when skimming edge pixles
 #' @param points which points to scale
@@ -204,191 +203,6 @@ aic.given.radius.and.lag.experimental <- function(r_and_h_untransformed, vortice
   return(c(stats::AIC(vort.fit), stats::AIC(scar.fit)))
 }
 
-#### DNS data ####
-
-#' Function for preparing the points, given a list of all points
-#' @param indices vector of indices/times to use points from
-#' @param points The complete list of points at all times
-#'
-#' @export
-prepare.points.dns <- function(indices, points){
-  t <- 1
-  firstPointNotFound <- TRUE
-  while(firstPointNotFound){
-    if (!is.numeric(points[[indices[t]]])) {
-      temp <- rbind(points[[indices[t]]])
-
-      for(p in 1:length(temp$x)){
-        if(temp$x[p] < 0){
-          temp$x[p] <- temp$x[p] + 1
-        }
-        if(temp$x[p] > 1){
-          temp$x[p] <- temp$x[p] - 1
-        }
-        if(temp$y[p] < 0){
-          temp$y[p] <- temp$y[p] + 1
-        }
-        if(temp$y[p] > 1){
-          temp$y[p] <- temp$y[p] - 1
-        }
-      }
-
-      if(dim(temp)[1] > 0){
-        firstPointNotFound <- FALSE
-        l <- dim(temp)[1]
-        pointsForAnalysis <- rbind(temp+c(rep(0, l), rep(t-1, l)))
-        break
-      }
-    }
-    t <- t + 1
-    if(t > length(indices)){
-      print("No points at given times.")
-      break
-    }
-  }
-
-  timeOfFirstPoint <- t
-  for (t in (timeOfFirstPoint+1):length(indices)) {
-    if(!is.numeric(points[[indices[t]]])){
-      temp <- rbind(points[[indices[t]]])
-
-      for(p in 1:length(temp$x)){
-        if(temp$x[p] < 0){
-          temp$x[p] <- temp$x[p] + 1
-        }
-        if(temp$x[p] > 1){
-          temp$x[p] <- temp$x[p] - 1
-        }
-        if(temp$y[p] < 0){
-          temp$y[p] <- temp$y[p] + 1
-        }
-        if(temp$y[p] > 1){
-          temp$y[p] <- temp$y[p] - 1
-        }
-      }
-
-      if(dim(temp)[1] > 0){
-        l <- dim(temp)[1]
-        pointsForAnalysis <- rbind(pointsForAnalysis, temp+c(rep(0, l), rep(t-1, l)))
-      }
-    }
-  }
-
-
-  points.pp <- spatstat.geom::ppp(x = pointsForAnalysis$x, y = pointsForAnalysis$y, c(0,1), c(0,length(indices)))
-  rm(pointsForAnalysis, temp)
-
-  return(points.pp)
-}
-
-#' Function for creating local variance covariates for the desired indices for DNS data
-#' @param hDiv horrisontal divergence complete array
-#' @param indices indices to use points from
-#' @param r radius to use in calculating local variance
-#' @param h lag
-#'
-#' @export
-combine.covariates.dns <- function(hDiv, indices, r, h){
-  numberOfPictures <- length(indices)
-
-  xdim <- dim(hDiv)[2]
-  ydim <- dim(hDiv)[3]
-
-  covariatesToCombine <- vector(mode = "list", length = numberOfPictures)
-
-  vindauga <- t(finn.vindauga.sirkel(radius = r))
-  skall <- t(finn.skall.av.vindauga(vindauga = t(vindauga)))
-
-  for (t in 1:numberOfPictures) {
-    insDiv <- hDiv[indices[t]+h, , ]
-    covariatesToCombine[[t]] <- calculateLocVar_periodic(inWin = vindauga, inShell = skall,
-                                                         insDiv = insDiv,
-                                                         inDims = c(xdim, ydim, dim(vindauga)[2], dim(skall)[2]))
-  }
-
-  combinedCovariates <- combine.covariates.matrices(covariates = covariatesToCombine, xdim = xdim, ydim = ydim)
-
-  Z <- spatstat.geom::im(t(combinedCovariates), xrange = c(0, 1), yrange = c(0, numberOfPictures))
-  rm(covariatesToCombine, vindauga, skall, xdim, ydim, numberOfPictures, hDiv, r, h)
-
-  return(Z)
-}
-
-#' Function for creating beta squared covariates for the desired indices for DNS data
-#' @param hDiv horrisontal divergence complete array
-#' @param indices indices to use points from
-#' @param h lag
-#'
-#' @export
-combine.covariates.betasq.dns <- function(hDiv, indices, h){
-  numberOfPictures <- length(indices)
-
-  xdim <- dim(hDiv)[2]
-  ydim <- dim(hDiv)[3]
-
-  covariatesToCombine <- vector(mode = "list", length = numberOfPictures)
-
-  for (t in 1:numberOfPictures) {
-    insDiv <- hDiv[indices[t]+h, , ]
-    covariatesToCombine[[t]] <- sum(insDiv^2) * matrix(data = 1, nrow = xdim, ncol = ydim)
-  }
-
-  combinedCovariates <- combine.covariates.matrices(covariates = covariatesToCombine, xdim = xdim, ydim = ydim)
-
-  Z <- spatstat.geom::im(t(combinedCovariates), xrange = c(0, 1), yrange = c(0, numberOfPictures))
-  rm(covariatesToCombine, xdim, ydim, numberOfPictures, hDiv, h)
-
-  return(Z)
-}
-
-#' Function for making a new AIC matrix given DNS data for a given radius and lag
-#' @param r_and_h_untransformed r_and_h_combined in single number
-#' @param vortices.pp votrices as spatstat point process
-#' @param scars.pp scars as spatstat point process
-#' @param hDiv horisontal divergence
-#' @param indices which indices to use
-#' @param radiiForPrint which radii to print
-#' @param startLag First lag, used to decide when to print the radius
-#' @param radiiModulo Parameter for how to decode the r_and_h_untransformed to r and h
-#' @param transformation Should the covariate be transformed, if value is "log" then a log transformation is applied
-#'
-#' @export
-aic.given.radius.and.lag <- function(r_and_h_untransformed, vortices.pp, scars.pp, hDiv,
-                                    indices, radiiForPrint, startLag, radiiModulo = 1000L, transformation = "identity"){
-  r <- r_and_h_untransformed %% radiiModulo
-  h <- (r_and_h_untransformed - r)/radiiModulo
-  if((r %in% radiiForPrint) && (h == startLag)) {print(r)}
-
-  Z <- combine.covariates.dns(hDiv = hDiv, indices = indices, r = r, h = h)
-  if(transformation == "log"){Z <- log(Z)}
-  vort.fit <- spatstat.model::ppm(vortices.pp ~ Z)
-  scar.fit <- spatstat.model::ppm(scars.pp ~ Z)
-  if(transformation == "both"){
-    vort.fit.log <- spatstat.model::ppm(vortices.pp ~ log(Z))
-    scar.fit.log <- spatstat.model::ppm(scars.pp ~ log(Z))
-    rm(Z, r, h)
-    return(c(stats::AIC(vort.fit), stats::AIC(scar.fit), stats::AIC(vort.fit.log), stats::AIC(scar.fit.log)))
-  }
-
-  rm(Z, r, h)
-  return(c(stats::AIC(vort.fit), stats::AIC(scar.fit)))
-}
-
-#' Function for making a matrix containing information both on the lag and radius to be used for each index in the aicMatrices
-#' @param radiar Vector with all radii for local variance
-#' @param lags Vector with all lag values to use
-#' @param radiiModulo parameter for how to encode lag and radius
-#'
-#' @export
-make.input.matrix <- function(radiar, lags, radiiModulo = 1000L){
-  res <- matrix(data = as.integer(radiar), ncol = length(radiar), nrow = length(lags), byrow = TRUE)
-  for (h_i in 1:length(lags)) {
-    res[h_i, ] <- res[h_i, ] + radiiModulo*lags[h_i]
-  }
-  return(res)
-}
-
-
 #' Function for making a new AIC matrix given data
 #' @param radiar Vector with all radii for local variance
 #' @param lags Vector with all lag values to use
@@ -397,7 +211,8 @@ make.input.matrix <- function(radiar, lags, radiiModulo = 1000L){
 #' @param hDiv horisontal divergence
 #' @param indices which indices to use
 #' @param ensembles Vector of ensembles to make use of, set to NULL if the data is not split into ensembles
-#' @param sim Boolean set to true if the data is simulated with periodic BCs
+#' @param sim Boolean set to true if the data is simulated with periodic BCs. This is deprecated for simulated data, use
+#' make.result.matrices or make.logLik.matrix instead
 #' @param skim Not yet available
 #' @param radiiModulo parameter for encoding lag and radius into single matrix
 #' @param radiiForPrint Boolean variable to indicate whether to print progress or not
@@ -409,6 +224,7 @@ make.new.aic.matrix <- function(radiar, lags, vortices.pp, scars.pp, hDiv, indic
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
 
   if(sim){
+    warn.stacked.deprecated("make.new.aic.matrix with sim = TRUE")
     aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = aic.given.radius.and.lag, vortices.pp = vortices.pp,
                          scars.pp = scars.pp, hDiv = hDiv, indices = indices, radiiForPrint = radiiForPrint,
                          startLag = lags[1], radiiModulo = radiiModulo, transformation = transformation)

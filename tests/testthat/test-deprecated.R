@@ -27,6 +27,7 @@ test_that("Detecting structures outside of shrunk window works", {
 
 
 test_that("Prepare structures for analysis DNS works", {
+  withr::local_options(codeSimData.silenceDeprecation = TRUE)
   lims <- c(0.25, 0.75)
 
   x_1 <- c(0.1, 0.25, 0.375, 0.375, 0.5, 0.75, 0.9)
@@ -57,6 +58,7 @@ test_that("Prepare structures for analysis DNS works", {
 # plot(x = structures_shrunk$x, y = structures_shrunk$y, xlim = c(0, 1), ylim = c(0, 1))
 
 test_that("Combine local variance for covariates", {
+  withr::local_options(codeSimData.silenceDeprecation = TRUE)
   sDiv_1 <- matrix(data = c(0, 1, 1, 0, 1,
                             1, 1, 0, 0, 1,
                             0, 2, 1, 1, 1,
@@ -83,7 +85,13 @@ test_that("Combine local variance for covariates", {
   expect_equal(object = res$v[, 1], expected = c(0.5, 2.3, 2.8, 0.5, 2.3, 2.8))
 })
 
+test_that("The deprecation warning is only shown once per session", {
+  withr::local_options(codeSimData.silenceDeprecation = FALSE)
+  oldState <- deprecationState$warned
+  withr::defer(deprecationState$warned <- oldState)
+  deprecationState$warned <- FALSE
+  hDiv <- array(data = 1:32, dim = c(2, 4, 4))
 
-
-
-
+  expect_warning(combine.covariates.betasq.dns(hDiv = hDiv, indices = 1, h = 0), "deprecated")
+  expect_no_warning(combine.covariates.betasq.dns(hDiv = hDiv, indices = 1, h = 0))
+})

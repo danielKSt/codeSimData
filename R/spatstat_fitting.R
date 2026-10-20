@@ -1,26 +1,5 @@
-# library("rhdf5")
-# library(codeSimData)
-# library(spatstat)
-#
-# load("/Users/danielks/Library/CloudStorage/OneDrive-NTNU/PhD/SimData/data/structures/pointsP50.RDa")
-# load("/Users/danielks/Library/CloudStorage/OneDrive-NTNU/PhD/SimData/data/scales/p50.RDa")
-# hDiv <- h5read(file = "/Volumes/LaCie/Daniel/Experimental/p50_h390.h5", name = "hDiv")
-#
-# field <- hDiv[1, , , ]
-# image(field[1, , ])
-# image(hDiv[1, 1, , ])
-# tidspunkt <- list(c(1, 23), c(1, 50), c(2, 10), c(2, 50))
-#
-# a <- make.points.list.spatstat(points_list = dimples, l_x = dim(hDiv)[3]/lengthscale, l_y = dim(hDiv)[4]/lengthscale, tidspunkt = tidspunkt)
-# plot(a[[1]])
-#
-# b <- surf.transform.specific.t(t = c(1, 1), field = hDiv, l_x = dim(hDiv)[3]/lengthscale, l_y = dim(hDiv)[4]/lengthscale, vindauga = NULL)
-# b <- surf.transform.specific.t(t = c(1, 1), field = hDiv, l_x = dim(hDiv)[3]/lengthscale, l_y = dim(hDiv)[4]/lengthscale, vindauga = "NULL")
-#
-# vindauga <- t(finn.vindauga.sirkel(radius = 5))
-# skall <- t(finn.skall.av.vindauga(vindauga = t(vindauga)))
-# b <- surf.transform.specific.t(t = c(1, 1), field = hDiv, l_x = dim(hDiv)[3]/lengthscale, l_y = dim(hDiv)[4]/lengthscale, vindauga = vindauga, skall = skall)
-# plot(b)
+# Fitting the regression model with mppm from spatstat. The exact likelihood in result_matrices.R does not need
+# spatstat, but this is still the only fitting that supports experimental data.
 
 #' Function for preparing the points, given a list of all points
 #' @param points_list List of all points in a unit square
@@ -230,42 +209,6 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
 #' @param lags lags
 #' @param radiiModulo Parameter for the case where we use a single number for both r and h
 #' @param radiiForPrint Vector of all radii where we should print the radius
-#' @param fitLogless Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm
-#' @param localStat Statistic of the window used as covariate, "variance", "meanSquare", "meanAbs" or "mean", see surf.transform.specific.t.
-#' The log fits need a positive covariate, so "mean" only works for positive fields
-#'
-#' @export
-make.aic.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, radiar, lags,
-                            radiiModulo = 1000L, radiiForPrint, fitLogless = fitLogless, localStat = "variance"){
-  inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
-
-  aicMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.fit.specific.r.h, scars_list = scars_list, l_x = l_x, l_y = l_y,
-                       dimples_list = dimples_list, field = field, tidspunkt = tidspunkt, radiiForPrint = radiiForPrint,
-                       startLag = lags[1], radiiModulo = radiiModulo, h = NULL, resType = "aic", fitLogless = fitLogless,
-                       localStat = localStat)
-
-  res.scars <- aicMatrices[1, , ]
-  res.dimples <- aicMatrices[2, , ]
-  if(fitLogless){
-    res.scars_logless <- aicMatrices[3, , ]
-    res.dimples_logless <- aicMatrices[4, , ]
-    return(list(scars = res.scars, dimples = res.dimples, scars.noLog = res.scars_logless, dimples.noLog = res.dimples_logless))
-  } else {
-    return(list(scars = res.scars, dimples = res.dimples))
-  }
-}
-
-#' Function to make an aic matrix using spatstats mppm function
-#' @param scars_list Complete list of scars for all timesteps
-#' @param dimples_list Complete list of dimples for all timesteps
-#' @param l_x Side length of observation window in x direction
-#' @param l_y Side length of observation window in y direction
-#' @param field TxMxN array with surface field
-#' @param tidspunkt vector with timesteps to use for inference
-#' @param radiar radiar
-#' @param lags lags
-#' @param radiiModulo Parameter for the case where we use a single number for both r and h
-#' @param radiiForPrint Vector of all radii where we should print the radius
 #' @param printProgressComplete Set to TRUE if you want detailed updates on the progress
 #' @param fitLogless Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm
 #' @param localStat Statistic of the window used as covariate, "variance", "meanSquare", "meanAbs" or "mean", see surf.transform.specific.t.
@@ -291,4 +234,3 @@ make.logLik.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspu
     return(list(scars = res.scars, dimples = res.dimples))
   }
 }
-

@@ -289,3 +289,22 @@ make.global.result.vectors <- function(lags, field, scars, dimples, l_x, l_y, ti
   return(list(scars = stats::setNames(res["scars", ], lags), dimples = stats::setNames(res["dimples", ], lags)))
 }
 
+#' Function for making a matrix containing information both on the lag and radius to be used for each index in the
+#' result matrices
+#' @description
+#' Each element is radius + radiiModulo*lag, with one row per lag and one column per radius. This lets apply loop over
+#' every combination of radius and lag, which get.logLik.specific.r.h and get.fit.specific.r.h decode when h is NULL.
+#'
+#' @param radiar Vector with all radii for local variance
+#' @param lags Vector with all lag values to use
+#' @param radiiModulo parameter for how to encode lag and radius
+#'
+#' @export
+make.input.matrix <- function(radiar, lags, radiiModulo = 1000L){
+  res <- matrix(data = as.integer(radiar), ncol = length(radiar), nrow = length(lags), byrow = TRUE)
+  for (h_i in 1:length(lags)) {
+    res[h_i, ] <- res[h_i, ] + radiiModulo*lags[h_i]
+  }
+  return(res)
+}
+
