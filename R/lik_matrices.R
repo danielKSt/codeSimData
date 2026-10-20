@@ -11,7 +11,7 @@
 # image(hDiv[1, 1, , ])
 # tidspunkt <- list(c(1, 23), c(1, 50), c(2, 10), c(2, 50))
 #
-# a <- make.points.list(points_list = dimples, l_x = dim(hDiv)[3]/lengthscale, l_y = dim(hDiv)[4]/lengthscale, tidspunkt = tidspunkt)
+# a <- make.points.list.spatstat(points_list = dimples, l_x = dim(hDiv)[3]/lengthscale, l_y = dim(hDiv)[4]/lengthscale, tidspunkt = tidspunkt)
 # plot(a[[1]])
 #
 # b <- surf.transform.specific.t(t = c(1, 1), field = hDiv, l_x = dim(hDiv)[3]/lengthscale, l_y = dim(hDiv)[4]/lengthscale, vindauga = NULL)
@@ -29,7 +29,7 @@
 #' @param tidspunkt Timesteps to use for list
 #'
 #' @export
-make.points.list <- function(points_list, l_x, l_y, tidspunkt){
+make.points.list.spatstat <- function(points_list, l_x, l_y, tidspunkt){
   res <- vector(mode = "list", length = length(tidspunkt))
   if(is.numeric(tidspunkt)){
     for(i in 1:length(tidspunkt)){
@@ -144,8 +144,8 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
   if(printProgressComplete){
     time_prev <- Sys.time()
   }
-  scars_list <- make.points.list(points_list = scars_list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
-  dimples_list <- make.points.list(points_list = dimples_list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
+  scars_list <- make.points.list.spatstat(points_list = scars_list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
+  dimples_list <- make.points.list.spatstat(points_list = dimples_list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
   if(printProgressComplete){
     time_curr <- Sys.time()
     print(paste("Time on preparing scars and dimples for r = ", r, ", h = ", h, ":  ",

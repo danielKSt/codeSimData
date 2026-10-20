@@ -23,7 +23,7 @@ make.test.setup <- function(){
 test_that("Vortex points look up the covariate value of their own pixel", {
   setup <- make.test.setup()
   vortices <- find.vortices.over.time(vortexData = setup$mask)
-  points <- make.points.list(points_list = vortices, l_x = setup$l_x, l_y = setup$l_y, tidspunkt = 1:3)
+  points <- make.points.list.spatstat(points_list = vortices, l_x = setup$l_x, l_y = setup$l_y, tidspunkt = 1:3)
 
   for(t in 1:3){
     Z <- surf.transform.specific.t(t = t, field = setup$field, l_x = setup$l_x, l_y = setup$l_y)
@@ -38,7 +38,7 @@ test_that("Scar points look up the covariate value of their own pixel", {
   scars <- lapply(1:3, function(t){
     find.scars.specific.time(scarData = setup$mask[t, , ], np = "unused", skimage = "unused")
   })
-  points <- make.points.list(points_list = scars, l_x = setup$l_x, l_y = setup$l_y, tidspunkt = 1:3)
+  points <- make.points.list.spatstat(points_list = scars, l_x = setup$l_x, l_y = setup$l_y, tidspunkt = 1:3)
 
   for(t in 1:3){
     Z <- surf.transform.specific.t(t = t, field = setup$field, l_x = setup$l_x, l_y = setup$l_y)
@@ -49,7 +49,7 @@ test_that("Scar points look up the covariate value of their own pixel", {
 test_that("Points look up the local variance of their own pixel", {
   setup <- make.test.setup()
   vortices <- find.vortices.over.time(vortexData = setup$mask)
-  points <- make.points.list(points_list = vortices, l_x = setup$l_x, l_y = setup$l_y, tidspunkt = 1:3)
+  points <- make.points.list.spatstat(points_list = vortices, l_x = setup$l_x, l_y = setup$l_y, tidspunkt = 1:3)
   vindauga <- t(finn.vindauga.sirkel(radius = 2))
   skall <- t(finn.skall.av.vindauga(vindauga = t(vindauga)))
 
@@ -74,6 +74,36 @@ test_that("Points in the stacked window look up the covariate value of their own
     return(locVar[setup$structurePixels[[t]]])
   }))
   expect_equal(sort(Z[points]), sort(expected))
+})
+
+test_that("get_Z_at_coord looks up the covariate value of the point's own pixel", {
+  setup <- make.test.setup()
+  vortices <- find.vortices.over.time(vortexData = setup$mask)
+  vortices[[3]] <- 0
+  points <- make.points.list(pointsList = vortices, l_x = setup$l_x, l_y = setup$l_y, tidspunkt = 1:3)
+  # An empty last timestep must not be dropped from the list
+  expect_length(points, 3)
+  expect_equal(nrow(points[[3]]), 0)
+
+  expected <- list()
+  for(t in 1:2){
+    Zvals <- sapply(seq_len(nrow(points[[t]])), function(i){
+      get_Z_at_coord(Z = setup$field, coord = c(points[[t]]$x[i], points[[t]]$y[i]), t = t,
+                     l_x = setup$l_x, l_y = setup$l_y)
+    })
+    expected[[t]] <- setup$field[t, , ][setup$structurePixels[[t]]]
+    expect_equal(sort(Zvals), sort(expected[[t]]))
+  }
+
+  inData <- get_sumLogZ_and_n(Z = setup$field, structures = points, l_x = setup$l_x, l_y = setup$l_y)
+  expect_equal(inData$n, 4)
+  expect_equal(inData$sumLogZ, sum(log(unlist(expected))))
+
+  # The far edges of the window belong to the last pixel, and points outside the window are an error
+  expect_equal(get_Z_at_coord(Z = setup$field, coord = c(setup$l_x, setup$l_y), t = 1, l_x = setup$l_x, l_y = setup$l_y),
+               setup$field[1, 8, 6])
+  expect_error(get_Z_at_coord(Z = setup$field, coord = c(-0.1, 1), t = 1, l_x = setup$l_x, l_y = setup$l_y),
+               "outside the observation window")
 })
 
 test_that("Old vortex and scar coordinates are converted to pixel centres", {
