@@ -4,14 +4,14 @@
 \alias{skeletonize_object_py}
 \title{Skeletonize a scar given pixels}
 \usage{
-skeletonize_object_py(df, np, skimage)
+skeletonize_object_py(df, np = NULL, skimage = NULL)
 }
 \arguments{
 \item{df}{dataframe with the pixel coordinates of the scar}
 
-\item{np}{numpy from package reticulate}
+\item{np}{numpy from package reticulate, or NULL to import it}
 
-\item{skimage}{skimage}
+\item{skimage}{skimage.morphology from package reticulate, or NULL to import it}
 }
 \value{
 Centerline of the scar

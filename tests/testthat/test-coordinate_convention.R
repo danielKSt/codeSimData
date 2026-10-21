@@ -116,7 +116,8 @@ test_that("Old vortex and scar coordinates are converted to pixel centres", {
   expect_equal(newVortices[[1]]$x, c(0.5, 7.5)/8)
   expect_equal(newVortices[[1]]$y, c(5.5, 2)/6)
   expect_equal(newVortices[[1]]$noPixels, c(1, 2))
-  expect_equal(newVortices[[2]], 0)
+  # Empty timesteps stored as 0 become data frames with zero rows
+  expect_equal(newVortices[[2]], structures.to.data.frame(list()))
   expect_equal(newVortices[[3]]$x, (1/3-0.5)/8 + 1)
 
   oldScars <- list(list(data.frame(x = (c(1, 8)/8) %% 1, y = (c(6, 3)/6) %% 1)))
@@ -145,7 +146,7 @@ test_that("Scars crossing the border that were divided twice are repaired before
                                                                 type = "scars", repairSeam = TRUE))
   expect_equal(repaired[[1]]$x, c(6.5, 7.5, 0.5)/8)
   expect_equal(repaired[[1]]$y, c(5.5, 1.5, 3.5)/6)
-  expect_equal(repaired[[2]], 0)
+  expect_equal(repaired[[2]], structures.to.data.frame(list()))
 
   expect_warning(convert.points.to.pixel.centres(points_list = dividedTwice, dims = dims, type = "scars"),
                  "repairSeam = TRUE")

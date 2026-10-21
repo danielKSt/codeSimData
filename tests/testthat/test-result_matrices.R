@@ -1,23 +1,3 @@
-# The field is not square, so mixing up the x and y directions makes the tests fail
-make.likelihood.test.setup <- function(){
-  set.seed(11)
-  nx <- 12
-  ny <- 10
-  noTimesteps <- 6
-  field <- array(data = stats::rnorm(noTimesteps*nx*ny), dim = c(noTimesteps, nx, ny))
-  random.points <- function(n){data.frame(x = stats::runif(n), y = stats::runif(n))}
-  scars <- lapply(1:noTimesteps, function(t){random.points(10)})
-  dimples <- lapply(1:noTimesteps, function(t){random.points(8)})
-  # An empty timestep, stored the same way as by find.vortices.over.time
-  dimples[[3]] <- 0
-  return(list(field = field, scars = scars, dimples = dimples, l_x = nx/2.5, l_y = ny/2.5))
-}
-
-prepare.likelihood.test.points <- function(setup, tidspunkt){
-  list(scars = make.points.list(pointsList = setup$scars, l_x = setup$l_x, l_y = setup$l_y, tidspunkt = tidspunkt),
-       dimples = make.points.list(pointsList = setup$dimples, l_x = setup$l_x, l_y = setup$l_y, tidspunkt = tidspunkt))
-}
-
 # Log likelihood from mppm with one dummy point per pixel centre, which makes the spatstat likelihood exact
 exact.spatstat.logLik <- function(setup, tidspunkt, h, vindauga, skall = NULL, localStat = "variance"){
   field_list <- lapply(X = tidspunkt + h, FUN = surf.transform.specific.t, field = setup$field, l_x = setup$l_x,
@@ -201,4 +181,14 @@ test_that("Invalid input gives an error", {
   expect_error(call.with(r = 2, h = 0, tidspunkt = tidspunkt, localStat = "mean"))
   expect_error(call.with(r = 0, h = 0, tidspunkt = tidspunkt), "at least one pixel")
   expect_error(call.with(r = 2, h = 0, tidspunkt = 2:3), "one element per timestep")
+})
+
+test_that("Empty timesteps can be stored as 0 or as a data frame with zero rows", {
+  pointsList <- list(0, structures.to.data.frame(list()), data.frame(x = 0.5, y = 0.25))
+  res <- make.points.list(pointsList = pointsList, l_x = 2, l_y = 4, tidspunkt = 1:3)
+  expect_equal(sapply(res, nrow), c(0, 0, 1))
+  expect_equal(res[[3]], data.frame(x = 1, y = 1))
+
+  resSpatstat <- make.points.list.spatstat(points_list = pointsList, l_x = 2, l_y = 4, tidspunkt = 1:3)
+  expect_equal(sapply(resSpatstat, spatstat.geom::npoints), c(0, 0, 1))
 })

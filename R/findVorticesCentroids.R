@@ -46,76 +46,88 @@ explore.vortex <- function(vortexPixels, boxDimensions){
 }
 
 
+#' Function for finding the connected structures in a binary mask
+#' @description
+#' Two pixels belong to the same structure if they are neighbours, including diagonal neighbours. With periodic
+#' boundary conditions, pixels on opposite edges of the mask are neighbours too. The structures are ordered by their
+#' first pixel when the mask is scanned with the x index in the outer loop.
+#'
+#' @param mask Matrix of zeros and ones, where the ones are the pixels with a structure on them
+#' @param periodic Set to TRUE if data is generated with periodic boundary conditions
+#'
+#' @returns List with one data frame per structure, with the x and y indices of its pixels
+find.connected.components <- function(mask, periodic = TRUE){
+  nx <- dim(mask)[1]
+  ny <- dim(mask)[2]
+  unvisited <- mask == 1
+  offsets <- rbind(c(-1, -1), c(-1, 0), c(-1, 1), c(0, -1), c(0, 1), c(1, -1), c(1, 0), c(1, 1))
+  starts <- which(unvisited, arr.ind = TRUE)
+  starts <- starts[order(starts[, 1], starts[, 2]), , drop = FALSE]
+  components <- list()
+  for(s in seq_len(nrow(starts))){
+    if(!unvisited[starts[s, 1], starts[s, 2]]){
+      next
+    }
+    unvisited[starts[s, 1], starts[s, 2]] <- FALSE
+    # Breadth-first search, with the pixels stored as linear indices into the mask
+    queue <- starts[s, 1] + nx*(starts[s, 2] - 1)
+    head <- 1
+    while(head <= length(queue)){
+      x <- (queue[head] - 1) %% nx + 1
+      y <- (queue[head] - 1) %/% nx + 1
+      head <- head + 1
+      xNew <- x + offsets[, 1]
+      yNew <- y + offsets[, 2]
+      if(periodic){
+        xNew <- (xNew - 1) %% nx + 1
+        yNew <- (yNew - 1) %% ny + 1
+      } else {
+        inWindow <- (xNew >= 1) & (xNew <= nx) & (yNew >= 1) & (yNew <= ny)
+        xNew <- xNew[inWindow]
+        yNew <- yNew[inWindow]
+      }
+      # unique() matters for masks one or two pixels wide, where several neighbours wrap to the same pixel
+      neighbours <- unique(xNew + nx*(yNew - 1))
+      neighbours <- neighbours[unvisited[neighbours]]
+      unvisited[neighbours] <- FALSE
+      queue <- c(queue, neighbours)
+    }
+    components[[length(components) + 1]] <- data.frame(x = (queue - 1) %% nx + 1, y = (queue - 1) %/% nx + 1)
+  }
+  return(components)
+}
+
+#' Function for collecting the properties of each structure in a data frame
+#' @param summaries List with one vector per structure, as returned by explore.vortex or explore.scar
+#'
+#' @returns Data frame with one row per structure, and zero rows if there are no structures
+structures.to.data.frame <- function(summaries){
+  res <- matrix(data = as.numeric(unlist(summaries)), ncol = 5, byrow = TRUE,
+                dimnames = list(NULL, c("x", "y", "noPixels", "xStretch", "yStretch")))
+  return(as.data.frame(res))
+}
+
+#' Function for checking if a timestep has no structures
+#' @description
+#' Timesteps without structures are data frames with zero rows. Point sets found with older versions of the package
+#' store them as the number 0 instead, so both count as empty.
+#'
+#' @param points Data frame with the structures of one timestep, or 0
+#'
+#' @returns TRUE if there are no structures
+is.empty.snapshot <- function(points){
+  return(is.numeric(points) || (is.data.frame(points) && nrow(points) == 0))
+}
+
 #' Function to go from complete mapped vortex pixel data to the point process format of vortex data
 #' @param vortexData Matrix of zeros and ones, where the ones are the pixels with a vortex on them
 #' @param periodic Set to TRUE if data is generated with periodic boundary conditions
 #'
-#' @returns Dataframe with vortex data
+#' @returns Dataframe with vortex data, with zero rows if there are no vortices
 #' @export
 find.vortices.specific.time <- function(vortexData, periodic = TRUE){
-  numberOfVortices <- 0
-  for (x in 1:dim(vortexData)[1]) {
-    for (y in 1:dim(vortexData)[2]) {
-      if(vortexData[x,y]==1){
-        x_start <- x
-        y_start <- y
-        numberOfVortices <- numberOfVortices + 1
-        remaining <- list(c(x_start, y_start))
-        remainingCount <- 1
-        vortexData[x_start, y_start] <- 2
-        pixels <- data.frame(x = x_start, y = y_start)
-        pixelsCount <- 1
-        while(remainingCount > 0){
-          x <- remaining[[remainingCount]][1]
-          y <- remaining[[remainingCount]][2]
-          remaining[[remainingCount]] <- NULL
-          remainingCount <- remainingCount - 1
-          kj_list <- list(c(-1, -1), c(-1, 0), c(-1, 1), c(0, -1), c(0, 1), c(1, -1), c(1, 0), c(1, 1))
-          for (kj in kj_list) {
-            if(periodic){
-              xNew <- (x + kj[1])%%dim(vortexData)[1]
-              xNew <- xNew + dim(vortexData)[1]*(xNew==0)
-              yNew <- (y + kj[2])%%dim(vortexData)[2]
-              yNew <- yNew + dim(vortexData)[2]*(yNew==0)
-              if(vortexData[xNew, yNew] == 1){
-                remainingCount <- remainingCount + 1
-                remaining[[remainingCount]] <- c(xNew, yNew)
-                vortexData[xNew, yNew] <- 2
-                pixels[nrow(pixels)+1,] <- c(xNew, yNew)
-                pixelsCount <- pixelsCount + 1
-              }
-            } else {
-              inWindow <- (x + kj[1] <= dim(vortexData)[1]) && (y + kj[2] <= dim(vortexData)[2]) && (y + kj[2] > 0) && (x + kj[1] > 0)
-              if(inWindow){
-                xNew <- x + kj[1]
-                yNew <- y + kj[2]
-                if(vortexData[xNew, yNew] == 1){
-                  remainingCount <- remainingCount + 1
-                  remaining[[remainingCount]] <- c(xNew, yNew)
-                  vortexData[xNew, yNew] <- 2
-                  pixels[nrow(pixels)+1,] <- c(xNew, yNew)
-                  pixelsCount <- pixelsCount + 1
-                }
-              }
-            }
-
-          }
-        }
-        vortexSummary <- explore.vortex(pixels, c(dim(vortexData)[1], dim(vortexData)[2]))
-        if(numberOfVortices == 1){
-          vortices <- data.frame(x = vortexSummary[1], y = vortexSummary[2], noPixels = vortexSummary[3],
-                                 xStretch = vortexSummary[4], yStretch = vortexSummary[5])
-        } else {
-          vortices[nrow(vortices)+1,] <- vortexSummary
-        }
-      }
-    }
-  }
-  if(numberOfVortices > 0){
-    return(vortices)
-  } else {
-    return(0)
-  }
+  components <- find.connected.components(mask = vortexData, periodic = periodic)
+  return(structures.to.data.frame(lapply(components, explore.vortex, boxDimensions = dim(vortexData))))
 }
 
 
@@ -141,22 +153,36 @@ find.vortices.over.time <- function(vortexData, periodic = TRUE){
 
 # Scars below here:
 
-#' Function used to find scar properties given all the pixels in the scar
-#' @param pixels Data Frame with coordinates of all the pixels in the scar
-#' @param dims vector of dimension of observation box
-#' @param np numpy from package reticulate
-#' @param skimage skimage
+#' Function for getting numpy and skimage.morphology from Python
+#' @description
+#' Imports the modules through reticulate, unless they are given. scikit-image is required before the first import, so
+#' that it is part of the Python environment reticulate sets up.
 #'
-#' @returns Vector of vortex properties
-#' @export
-explore.scar <- function(pixels, dims, np, skimage){
-  if(is.null(np)){
-    np <- reticulate::import("numpy")
-  }
+#' @param np numpy from package reticulate, or NULL to import it
+#' @param skimage skimage.morphology from package reticulate, or NULL to import it
+#'
+#' @returns List with np and skimage
+python.modules <- function(np = NULL, skimage = NULL){
   if(is.null(skimage)){
     reticulate::py_require("scikit-image")
     skimage <- reticulate::import("skimage.morphology")
   }
+  if(is.null(np)){
+    np <- reticulate::import("numpy")
+  }
+  return(list(np = np, skimage = skimage))
+}
+
+#' Function used to find scar properties given all the pixels in the scar
+#' @param pixels Data Frame with coordinates of all the pixels in the scar
+#' @param dims vector of dimension of observation box
+#' @param np numpy from package reticulate, or NULL to import it
+#' @param skimage skimage.morphology from package reticulate, or NULL to import it
+#'
+#' @returns Vector of vortex properties
+#' @export
+explore.scar <- function(pixels, dims, np = NULL, skimage = NULL){
+  modules <- python.modules(np = np, skimage = skimage)
   noPixels <- dim(pixels)[1]
   if((min(pixels$x) == 1) && (max(pixels$x) == dims[1])){
     pixels$x <- ((pixels$x + floor(dims[1]/2)) %% dims[1])
@@ -177,7 +203,7 @@ explore.scar <- function(pixels, dims, np, skimage){
   geom_centre_x <- mean(pixels$x)
   geom_centre_y <- mean(pixels$y)
 
-  centreline <- skeletonize_object_py(df = pixels, np = np, skimage = skimage)
+  centreline <- skeletonize_object_py(df = pixels, np = modules$np, skimage = modules$skimage)
   minDistance <- dims[1]*2
   for (i in 1:nrow(centreline)) {
     dist <- sqrt((geom_centre_y-centreline$y[i])^2+(geom_centre_x-centreline$x[i])^2)
@@ -202,82 +228,17 @@ explore.scar <- function(pixels, dims, np, skimage){
 
 #' Function to go from complete mapped scar pixel data to the point process format of scar data
 #' @param scarData Matrix of zeros and ones, where the ones are the pixels with a scar on them
-#' @param np numpy from package reticulate
-#' @param skimage skimage
+#' @param np numpy from package reticulate, or NULL to import it
+#' @param skimage skimage.morphology from package reticulate, or NULL to import it
 #' @param periodic Set to TRUE if data is generated with periodic boundary conditions
 #'
-#' @returns Dataframe with scar data
+#' @returns Dataframe with scar data, with zero rows if there are no scars
 #' @export
-find.scars.specific.time <- function(scarData, np, skimage, periodic = TRUE){
-  if(is.null(np)){
-    np <- reticulate::import("numpy")
-  }
-  if(is.null(skimage)){
-    reticulate::py_require("scikit-image")
-    skimage <- reticulate::import("skimage.morphology")
-  }
-  numberOfScars <- 0
-  for (x in 1:dim(scarData)[1]) {
-    for (y in 1:dim(scarData)[2]) {
-      if(scarData[x,y]==1){
-        x_start <- x
-        y_start <- y
-        numberOfScars <- numberOfScars + 1
-        remaining <- list(c(x_start, y_start))
-        remainingCount <- 1
-        scarData[x_start, y_start] <- 2
-        pixels <- data.frame(x = x_start, y = y_start)
-        pixelsCount <- 1
-        while(remainingCount > 0){
-          x <- remaining[[remainingCount]][1]
-          y <- remaining[[remainingCount]][2]
-          remaining[[remainingCount]] <- NULL
-          remainingCount <- remainingCount - 1
-          kj_list <- list(c(-1, -1), c(-1, 0), c(-1, 1), c(0, -1), c(0, 1), c(1, -1), c(1, 0), c(1, 1))
-          for (kj in kj_list) {
-            if(periodic){
-              xNew <- (x + kj[1])%%dim(scarData)[1]
-              xNew <- xNew + dim(scarData)[1]*(xNew==0)
-              yNew <- (y + kj[2])%%dim(scarData)[2]
-              yNew <- yNew + dim(scarData)[2]*(yNew==0)
-              if(scarData[xNew, yNew] == 1){
-                remainingCount <- remainingCount + 1
-                remaining[[remainingCount]] <- c(xNew, yNew)
-                scarData[xNew, yNew] <- 2
-                pixels[nrow(pixels)+1,] <- c(xNew, yNew)
-                pixelsCount <- pixelsCount + 1
-              }
-            } else {
-              inWindow <- (x + kj[1] <= dim(scarData)[1]) && (y + kj[2] <= dim(scarData)[2]) && (y + kj[2] > 0) && (x + kj[1] > 0)
-              if(inWindow){
-                xNew <- x + kj[1]
-                yNew <- y + kj[2]
-                if(scarData[xNew, yNew] == 1){
-                  remainingCount <- remainingCount + 1
-                  remaining[[remainingCount]] <- c(xNew, yNew)
-                  scarData[xNew, yNew] <- 2
-                  pixels[nrow(pixels)+1,] <- c(xNew, yNew)
-                  pixelsCount <- pixelsCount + 1
-                }
-              }
-            }
-          }
-        }
-        scar <- explore.scar(pixels, c(dim(scarData)[1], dim(scarData)[2]), np = np, skimage = skimage)
-        if(numberOfScars == 1){
-          scars <- data.frame(x = scar[1], y = scar[2], noPixels = scar[3],
-                              xStretch = scar[4], yStretch = scar[5])
-        } else {
-          scars[numberOfScars, ] <- scar
-        }
-      }
-    }
-  }
-  if(numberOfScars > 0){
-    return(scars)
-  } else {
-    return(0)
-  }
+find.scars.specific.time <- function(scarData, np = NULL, skimage = NULL, periodic = TRUE){
+  modules <- python.modules(np = np, skimage = skimage)
+  components <- find.connected.components(mask = scarData, periodic = periodic)
+  return(structures.to.data.frame(lapply(components, explore.scar, dims = dim(scarData), np = modules$np,
+                                         skimage = modules$skimage)))
 }
 
 
@@ -291,13 +252,12 @@ find.scars.specific.time <- function(scarData, np, skimage, periodic = TRUE){
 #' @returns List of dataframes of scar data for each timestep
 #' @export
 find.scars.over.time <- function(scarData, periodic = TRUE){
-  reticulate::py_require("scikit-image")
-  skimage <- reticulate::import("skimage.morphology")
-  np <- reticulate::import("numpy")
+  modules <- python.modules()
   endTimestep <- dim(scarData)[1]
   scars <- vector(mode = "list", length = endTimestep)
   for(i in 1:endTimestep) {
-    scars[[i]] <- find.scars.specific.time(scarData = scarData[i, , ], np = np, skimage = skimage, periodic = periodic)
+    scars[[i]] <- find.scars.specific.time(scarData = scarData[i, , ], np = modules$np, skimage = modules$skimage,
+                                           periodic = periodic)
   }
   attr(scars, "pixelConvention") <- "centre"
   return(scars)
@@ -307,19 +267,15 @@ find.scars.over.time <- function(scarData, periodic = TRUE){
 #' Skeletonize a scar given pixels
 #'
 #' @param df dataframe with the pixel coordinates of the scar
-#' @param np numpy from package reticulate
-#' @param skimage skimage
+#' @param np numpy from package reticulate, or NULL to import it
+#' @param skimage skimage.morphology from package reticulate, or NULL to import it
 #'
 #' @returns Centerline of the scar
 #'
-skeletonize_object_py <- function(df, np, skimage) {
-  if(is.null(np)){
-    np <- reticulate::import("numpy")
-  }
-  if(is.null(skimage)){
-    reticulate::py_require("scikit-image")
-    skimage <- reticulate::import("skimage.morphology")
-  }
+skeletonize_object_py <- function(df, np = NULL, skimage = NULL) {
+  modules <- python.modules(np = np, skimage = skimage)
+  np <- modules$np
+  skimage <- modules$skimage
   # Create binary image matrix
   width <- max(df$x) + 1
   height <- max(df$y) + 1
@@ -348,82 +304,19 @@ skeletonize_object_py <- function(df, np, skimage) {
 }
 
 
-#' Function to go from complete mapped scar pixel data to the point process format of scar data
+#' Function to find the centreline of each scar in mapped scar pixel data
 #' @param scarData Matrix of zeros and ones, where the ones are the pixels with a scar on them
-#' @param np numpy from package reticulate
-#' @param skimage skimage
+#' @param np numpy from package reticulate, or NULL to import it
+#' @param skimage skimage.morphology from package reticulate, or NULL to import it
 #' @param periodic Set to TRUE if data is generated with periodic boundary conditions
 #'
-#' @returns Dataframe with scar data
+#' @returns List with the centreline of each scar, as a data frame of pixel coordinates. The list is empty if there are
+#' no scars
 #' @export
 find.scars.centrelines.specific.time <- function(scarData, np = NULL, skimage = NULL, periodic = TRUE){
-  if(is.null(np)){
-    np <- reticulate::import("numpy")
-  }
-  if(is.null(skimage)){
-    reticulate::py_require("scikit-image")
-    skimage <- reticulate::import("skimage.morphology")
-  }
-  numberOfScars <- 0
-  for (x in 1:dim(scarData)[1]) {
-    for (y in 1:dim(scarData)[2]) {
-      if(scarData[x,y]==1){
-        x_start <- x
-        y_start <- y
-        numberOfScars <- numberOfScars + 1
-        remaining <- list(c(x_start, y_start))
-        remainingCount <- 1
-        scarData[x_start, y_start] <- 2
-        pixels <- data.frame(x = x_start, y = y_start)
-        pixelsCount <- 1
-        while(remainingCount > 0){
-          x <- remaining[[remainingCount]][1]
-          y <- remaining[[remainingCount]][2]
-          remaining[[remainingCount]] <- NULL
-          remainingCount <- remainingCount - 1
-          kj_list <- list(c(-1, -1), c(-1, 0), c(-1, 1), c(0, -1), c(0, 1), c(1, -1), c(1, 0), c(1, 1))
-          for (kj in kj_list) {
-            if(periodic){
-              xNew <- (x + kj[1])%%dim(scarData)[1]
-              xNew <- xNew + dim(scarData)[1]*(xNew==0)
-              yNew <- (y + kj[2])%%dim(scarData)[2]
-              yNew <- yNew + dim(scarData)[2]*(yNew==0)
-              if(scarData[xNew, yNew] == 1){
-                remainingCount <- remainingCount + 1
-                remaining[[remainingCount]] <- c(xNew, yNew)
-                scarData[xNew, yNew] <- 2
-                pixels[nrow(pixels)+1,] <- c(xNew, yNew)
-                pixelsCount <- pixelsCount + 1
-              }
-            } else {
-              inWindow <- (x + kj[1] <= dim(scarData)[1]) && (y + kj[2] <= dim(scarData)[2]) && (y + kj[2] > 0) && (x + kj[1] > 0)
-              if(inWindow){
-                xNew <- x + kj[1]
-                yNew <- y + kj[2]
-                if(scarData[xNew, yNew] == 1){
-                  remainingCount <- remainingCount + 1
-                  remaining[[remainingCount]] <- c(xNew, yNew)
-                  scarData[xNew, yNew] <- 2
-                  pixels[nrow(pixels)+1,] <- c(xNew, yNew)
-                  pixelsCount <- pixelsCount + 1
-                }
-              }
-            }
-          }
-        }
-        if(numberOfScars == 1){
-          scars <- list(skeletonize_object_py(df = pixels, np = np, skimage = skimage))
-        } else {
-          scars[[numberOfScars]] <- skeletonize_object_py(df = pixels, np = np, skimage = skimage)
-        }
-      }
-    }
-  }
-  if(numberOfScars > 0){
-    return(scars)
-  } else {
-    return(0)
-  }
+  modules <- python.modules(np = np, skimage = skimage)
+  components <- find.connected.components(mask = scarData, periodic = periodic)
+  return(lapply(components, skeletonize_object_py, np = modules$np, skimage = modules$skimage))
 }
 
 
@@ -460,13 +353,17 @@ convert.points.to.pixel.centres <- function(points_list, dims, type, repairSeam 
   if(repairSeam && type != "scars"){
     stop("repairSeam can only be used when type is \"scars\".")
   }
-  # Applies fun to the dataframe of every timestep, skipping empty timesteps
+  # Applies fun to the dataframe of every timestep, skipping empty timesteps. Empty timesteps stored as 0 by older
+  # versions of the package become data frames with zero rows, as find.vortices.over.time and find.scars.over.time
+  # give now
   apply.to.points <- function(points, fun){
     if(is.data.frame(points)){
       return(fun(points))
     }
     for(i in seq_along(points)){
-      if(!is.numeric(points[[i]])){
+      if(is.numeric(points[[i]])){
+        points[[i]] <- structures.to.data.frame(list())
+      } else if(!is.empty.snapshot(points[[i]])){
         points[[i]] <- apply.to.points(points[[i]], fun)
       }
     }

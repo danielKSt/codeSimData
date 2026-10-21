@@ -4,16 +4,16 @@
 \alias{explore.scar}
 \title{Function used to find scar properties given all the pixels in the scar}
 \usage{
-explore.scar(pixels, dims, np, skimage)
+explore.scar(pixels, dims, np = NULL, skimage = NULL)
 }
 \arguments{
 \item{pixels}{Data Frame with coordinates of all the pixels in the scar}
 
 \item{dims}{vector of dimension of observation box}
 
-\item{np}{numpy from package reticulate}
+\item{np}{numpy from package reticulate, or NULL to import it}
 
-\item{skimage}{skimage}
+\item{skimage}{skimage.morphology from package reticulate, or NULL to import it}
 }
 \value{
 Vector of vortex properties

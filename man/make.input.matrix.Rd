@@ -8,9 +8,9 @@ result matrices}
 make.input.matrix(radiar, lags, radiiModulo = 1000L)
 }
 \arguments{
-\item{radiar}{Vector with all radii for local variance}
+\item{radiar}{Vector with all radii for local variance, whole numbers between 0 and radiiModulo}
 
-\item{lags}{Vector with all lag values to use}
+\item{lags}{Vector with all lag values to use, whole numbers}
 
 \item{radiiModulo}{parameter for how to encode lag and radius}
 }

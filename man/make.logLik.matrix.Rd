@@ -17,7 +17,8 @@ make.logLik.matrix(
   radiiForPrint,
   printProgressComplete = FALSE,
   fitLogless = FALSE,
-  localStat = "variance"
+  localStat = "variance",
+  pixelQuadrature = TRUE
 )
 }
 \arguments{
@@ -47,6 +48,13 @@ make.logLik.matrix(
 
 \item{localStat}{Statistic of the window used as covariate, "variance", "meanSquare", "meanAbs" or "mean", see surf.transform.specific.t.
 The log fits need a positive covariate, so "mean" only works for positive fields}
+
+\item{pixelQuadrature}{Set to TRUE to use one dummy point per pixel centre, which makes the likelihood exact, see
+get.fit.specific.r.h}
+}
+\value{
+List with the matrices scars and dimples, and also scars.noLog and dimples.noLog if fitLogless is TRUE.
+Each matrix has one row per lag and one column per radius
 }
 \description{
 Function to make an aic matrix using spatstats mppm function

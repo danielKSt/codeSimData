@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatstat_fitting.R
 \name{get.fit.specific.r.h}
 \alias{get.fit.specific.r.h}
-\title{Function for preparing the points, given a list of all points}
+\title{Fit the model with mppm for a specific radius and lag}
 \usage{
 get.fit.specific.r.h(
   scars_list,
@@ -19,7 +19,8 @@ get.fit.specific.r.h(
   resType = "logLik",
   printProgressComplete = FALSE,
   fitLogless = FALSE,
-  localStat = "variance"
+  localStat = "variance",
+  pixelQuadrature = TRUE
 )
 }
 \arguments{
@@ -35,7 +36,8 @@ get.fit.specific.r.h(
 
 \item{tidspunkt}{vector with timesteps to use for inference}
 
-\item{r}{radius}
+\item{r}{radius. Set to 0 to use the field itself as covariate, which then has to be positive, or to "infty" for the
+global model}
 
 \item{h}{lag}
 
@@ -53,7 +55,15 @@ get.fit.specific.r.h(
 
 \item{localStat}{Statistic of the window used as covariate, "variance", "meanSquare", "meanAbs" or "mean", see surf.transform.specific.t.
 The log fits need a positive covariate, so "mean" only works for positive fields}
+
+\item{pixelQuadrature}{Set to TRUE to use one dummy point per pixel centre. The covariate is constant within each
+pixel, so this makes the likelihood exact. Set to FALSE to use the default quadrature of mppm, which is faster, but
+only approximates the integral of the intensity}
+}
+\value{
+For resType "logLik" and "aic", a named vector with elements scars and dimples, and also scars.noLog and
+dimples.noLog if fitLogless is TRUE. For resType "fit", a list with the fitted models
 }
 \description{
-Function for preparing the points, given a list of all points
+Fit the model with mppm for a specific radius and lag
 }

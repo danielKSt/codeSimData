@@ -13,7 +13,7 @@ make.points.list.spatstat <- function(points_list, l_x, l_y, tidspunkt){
   if(is.numeric(tidspunkt)){
     for(i in 1:length(tidspunkt)){
       t <- tidspunkt[i]
-      if(is.numeric(points_list[[t]])){
+      if(is.empty.snapshot(points_list[[t]])){
         res[[i]] <- spatstat.geom::ppp(x = c(), y = c(), c(0,l_x), c(0,l_y))
       } else {
         res[[i]] <- spatstat.geom::ppp(x = points_list[[t]]$x*l_x, y = points_list[[t]]$y*l_y, c(0,l_x), c(0,l_y))
@@ -23,7 +23,7 @@ make.points.list.spatstat <- function(points_list, l_x, l_y, tidspunkt){
     for(i in 1:length(tidspunkt)){
       ensemble <- tidspunkt[[i]][1]
       t <- tidspunkt[[i]][2]
-      if(is.numeric(points_list[[ensemble]][[t]])){
+      if(is.empty.snapshot(points_list[[ensemble]][[t]])){
         res[[i]] <- spatstat.geom::ppp(x = c(), y = c(), c(0,l_x), c(0,l_y))
       } else {
         res[[i]] <- spatstat.geom::ppp(x = points_list[[ensemble]][[t]]$x*l_x, y = points_list[[ensemble]][[t]]$y*l_y, c(0,l_x), c(0,l_y))
@@ -91,14 +91,15 @@ surf.transform.specific.t <- function(t, field, l_x, l_y, vindauga = NULL, skall
 }
 
 
-#' Function for preparing the points, given a list of all points
+#' Fit the model with mppm for a specific radius and lag
 #' @param scars_list Complete list of scars for all timesteps
 #' @param dimples_list Complete list of dimples for all timesteps
 #' @param l_x Side length of observation window in x direction
 #' @param l_y Side length of observation window in y direction
 #' @param field TxMxN array with surface field
 #' @param tidspunkt vector with timesteps to use for inference
-#' @param r radius
+#' @param r radius. Set to 0 to use the field itself as covariate, which then has to be positive, or to "infty" for the
+#' global model
 #' @param h lag
 #' @param radiiModulo Parameter for the case where we use a single number for both r and h
 #' @param radiiForPrint Vector of all radii where we should print the radius
@@ -108,12 +109,19 @@ surf.transform.specific.t <- function(t, field, l_x, l_y, vindauga = NULL, skall
 #' @param fitLogless Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm
 #' @param localStat Statistic of the window used as covariate, "variance", "meanSquare", "meanAbs" or "mean", see surf.transform.specific.t.
 #' The log fits need a positive covariate, so "mean" only works for positive fields
+#' @param pixelQuadrature Set to TRUE to use one dummy point per pixel centre. The covariate is constant within each
+#' pixel, so this makes the likelihood exact. Set to FALSE to use the default quadrature of mppm, which is faster, but
+#' only approximates the integral of the intensity
+#'
+#' @returns For resType "logLik" and "aic", a named vector with elements scars and dimples, and also scars.noLog and
+#' dimples.noLog if fitLogless is TRUE. For resType "fit", a list with the fitted models
 #'
 #' @export
 get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, r, h = 0, radiiModulo = 1000L,
                                  radiiForPrint = -1, startLag = 0,
                                  resType = "logLik", printProgressComplete = FALSE, fitLogless = FALSE,
-                                 localStat = "variance"){
+                                 localStat = "variance", pixelQuadrature = TRUE){
+  resType <- match.arg(resType, choices = c("logLik", "aic", "fit"))
   if(is.null(h)){
     r_and_h_untransformed <- r
     r <- r_and_h_untransformed %% radiiModulo
@@ -163,6 +171,16 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
                 difftime(time_curr-time_prev, units = "mins"), "mins" , sep = ""))
     time_prev <- time_curr
   }
+  # The field itself (r = 0) and the local mean can be negative, and log(field) is then undefined
+  if(any(vapply(field_list, function(Z){min(Z$v, na.rm = TRUE) <= 0}, logical(1)))){
+    stop("The covariate must be positive, since the model uses log(field). For a signed field, use r >= 1 with ",
+         "localStat \"variance\", \"meanSquare\" or \"meanAbs\"")
+  }
+  if(pixelQuadrature){
+    to.pixel.quad <- function(X, Z){spatstat.geom::pixelquad(X, W = spatstat.geom::as.owin(Z))}
+    scars_list <- mapply(to.pixel.quad, scars_list, field_list, SIMPLIFY = FALSE)
+    dimples_list <- mapply(to.pixel.quad, dimples_list, field_list, SIMPLIFY = FALSE)
+  }
 
   df <- spatstat.geom::hyperframe(scars = scars_list, dimples = dimples_list, field = field_list)
   scars_log.fit <- spatstat.model::mppm(formula = scars ~ log(field), data = df)
@@ -177,25 +195,19 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
                 difftime(time_curr-time_prev, units = "mins"), "mins", sep = ""))
     time_prev <- time_curr
   }
-  if(resType == "logLik"){
-    if(fitLogless){
-      return(c(stats::logLik(scars_log.fit), stats::logLik(dimples_log.fit), stats::logLik(scars.fit), stats::logLik(dimples.fit)))
-    } else {
-      return(c(stats::logLik(scars_log.fit), stats::logLik(dimples_log.fit)))
-    }
-  } else if(resType == "aic"){
-    if(fitLogless){
-      return(c(stats::AIC(scars_log.fit), stats::AIC(dimples_log.fit), stats::AIC(scars.fit), stats::AIC(dimples.fit)))
-    } else {
-      return(c(stats::AIC(scars_log.fit), stats::AIC(dimples_log.fit)))
-    }
-  } else if (resType == "fit"){
+  if (resType == "fit"){
     if(fitLogless){
       return(list(scars.fit = scars_log.fit, dimples.fit = dimples_log.fit, scars_noLog.fit = scars.fit, dimples_noLog.fit = dimples.fit))
     } else {
       return(list(scars.fit = scars_log.fit, dimples.fit = dimples_log.fit))
     }
   }
+  measure <- switch(resType, logLik = function(fit){as.numeric(stats::logLik(fit))}, aic = stats::AIC)
+  res <- c(scars = measure(scars_log.fit), dimples = measure(dimples_log.fit))
+  if(fitLogless){
+    res <- c(res, scars.noLog = measure(scars.fit), dimples.noLog = measure(dimples.fit))
+  }
+  return(res)
 }
 
 #' Function to make an aic matrix using spatstats mppm function
@@ -213,24 +225,33 @@ get.fit.specific.r.h <- function(scars_list, dimples_list, l_x, l_y, field, tids
 #' @param fitLogless Set to TRUE if you want to fit the model directly to the transformed field as well as the logarithm
 #' @param localStat Statistic of the window used as covariate, "variance", "meanSquare", "meanAbs" or "mean", see surf.transform.specific.t.
 #' The log fits need a positive covariate, so "mean" only works for positive fields
+#' @param pixelQuadrature Set to TRUE to use one dummy point per pixel centre, which makes the likelihood exact, see
+#' get.fit.specific.r.h
+#'
+#' @returns List with the matrices scars and dimples, and also scars.noLog and dimples.noLog if fitLogless is TRUE.
+#' Each matrix has one row per lag and one column per radius
 #'
 #' @export
 make.logLik.matrix <- function(scars_list, dimples_list, l_x, l_y, field, tidspunkt, radiar, lags, radiiModulo = 1000L,
-                               radiiForPrint, printProgressComplete = FALSE, fitLogless = FALSE, localStat = "variance"){
+                               radiiForPrint, printProgressComplete = FALSE, fitLogless = FALSE, localStat = "variance",
+                               pixelQuadrature = TRUE){
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
 
   logLikMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.fit.specific.r.h, scars_list = scars_list, l_x = l_x, l_y = l_y,
                        dimples_list = dimples_list, field = field, tidspunkt = tidspunkt, radiiForPrint = radiiForPrint,
                        startLag = lags[1], radiiModulo = radiiModulo, h = NULL, resType = "logLik",
-                       printProgressComplete = printProgressComplete, fitLogless = fitLogless, localStat = localStat)
+                       printProgressComplete = printProgressComplete, fitLogless = fitLogless, localStat = localStat,
+                       pixelQuadrature = pixelQuadrature)
 
-  res.scars <- logLikMatrices[1, , ]
-  res.dimples <- logLikMatrices[2, , ]
-  if(fitLogless){
-    res.scars_logless <- logLikMatrices[3, , ]
-    res.dimples_logless <- logLikMatrices[4, , ]
-    return(list(scars = res.scars, dimples = res.dimples, scars.noLog = res.scars_logless, dimples.noLog = res.dimples_logless))
-  } else {
-    return(list(scars = res.scars, dimples = res.dimples))
+  # matrix() keeps the result a matrix when there is only one lag or one radius
+  as.result.matrix <- function(name){
+    matrix(data = logLikMatrices[name, , ], nrow = length(lags), ncol = length(radiar),
+           dimnames = list(lag = lags, radius = radiar))
   }
+  res <- list(scars = as.result.matrix("scars"), dimples = as.result.matrix("dimples"))
+  if(fitLogless){
+    res$scars.noLog <- as.result.matrix("scars.noLog")
+    res$dimples.noLog <- as.result.matrix("dimples.noLog")
+  }
+  return(res)
 }

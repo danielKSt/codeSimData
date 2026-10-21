@@ -49,7 +49,7 @@ prepare.points.experimental <- function(indices, numberOfEnsembles, points, xdim
 
   firstPointNotFound <- TRUE
   while(firstPointNotFound){
-    if (!is.numeric(points[[ensemble]][[indices[t]]])) {
+    if (!is.empty.snapshot(points[[ensemble]][[indices[t]]])) {
       temp <- rbind(points[[ensemble]][[indices[t]]])
       temp <- scale.points.skim(points = temp, c_x = c_x, c_y = c_y)
       if(dim(temp)[1] > 0){
@@ -72,7 +72,7 @@ prepare.points.experimental <- function(indices, numberOfEnsembles, points, xdim
   timeOfFirstPoint <- t
   ensembleOfFirstPoint <- ensemble
   for (t in (timeOfFirstPoint+1):length(indices)) {
-    if(!is.numeric(points[[ensembleOfFirstPoint]][[indices[t]]])){
+    if(!is.empty.snapshot(points[[ensembleOfFirstPoint]][[indices[t]]])){
       temp <- scale.points.skim(points = points[[ensembleOfFirstPoint]][[indices[t]]], c_x = c_x, c_y = c_y)
       if(dim(temp)[1] > 0){
         l <- dim(temp)[1]
@@ -82,7 +82,7 @@ prepare.points.experimental <- function(indices, numberOfEnsembles, points, xdim
   }
   for (ensemble in (ensembleOfFirstPoint+1):numberOfEnsembles) {
     for (t in 1:length(indices)) {
-      if(!is.numeric(points[[ensemble]][[indices[t]]])){
+      if(!is.empty.snapshot(points[[ensemble]][[indices[t]]])){
         temp <- scale.points.skim(points = points[[ensemble]][[indices[t]]], c_x = c_x, c_y = c_y)
         if(dim(temp)[1] > 0){
           l <- dim(temp)[1]

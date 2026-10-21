@@ -12,7 +12,7 @@ find.vortices.specific.time(vortexData, periodic = TRUE)
 \item{periodic}{Set to TRUE if data is generated with periodic boundary conditions}
 }
 \value{
-Dataframe with vortex data
+Dataframe with vortex data, with zero rows if there are no vortices
 }
 \description{
 Function to go from complete mapped vortex pixel data to the point process format of vortex data

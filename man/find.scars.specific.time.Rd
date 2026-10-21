@@ -4,19 +4,19 @@
 \alias{find.scars.specific.time}
 \title{Function to go from complete mapped scar pixel data to the point process format of scar data}
 \usage{
-find.scars.specific.time(scarData, np, skimage, periodic = TRUE)
+find.scars.specific.time(scarData, np = NULL, skimage = NULL, periodic = TRUE)
 }
 \arguments{
 \item{scarData}{Matrix of zeros and ones, where the ones are the pixels with a scar on them}
 
-\item{np}{numpy from package reticulate}
+\item{np}{numpy from package reticulate, or NULL to import it}
 
-\item{skimage}{skimage}
+\item{skimage}{skimage.morphology from package reticulate, or NULL to import it}
 
 \item{periodic}{Set to TRUE if data is generated with periodic boundary conditions}
 }
 \value{
-Dataframe with scar data
+Dataframe with scar data, with zero rows if there are no scars
 }
 \description{
 Function to go from complete mapped scar pixel data to the point process format of scar data

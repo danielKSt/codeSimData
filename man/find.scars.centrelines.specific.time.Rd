@@ -2,7 +2,7 @@
 % Please edit documentation in R/findVorticesCentroids.R
 \name{find.scars.centrelines.specific.time}
 \alias{find.scars.centrelines.specific.time}
-\title{Function to go from complete mapped scar pixel data to the point process format of scar data}
+\title{Function to find the centreline of each scar in mapped scar pixel data}
 \usage{
 find.scars.centrelines.specific.time(
   scarData,
@@ -14,15 +14,16 @@ find.scars.centrelines.specific.time(
 \arguments{
 \item{scarData}{Matrix of zeros and ones, where the ones are the pixels with a scar on them}
 
-\item{np}{numpy from package reticulate}
+\item{np}{numpy from package reticulate, or NULL to import it}
 
-\item{skimage}{skimage}
+\item{skimage}{skimage.morphology from package reticulate, or NULL to import it}
 
 \item{periodic}{Set to TRUE if data is generated with periodic boundary conditions}
 }
 \value{
-Dataframe with scar data
+List with the centreline of each scar, as a data frame of pixel coordinates. The list is empty if there are
+no scars
 }
 \description{
-Function to go from complete mapped scar pixel data to the point process format of scar data
+Function to find the centreline of each scar in mapped scar pixel data
 }

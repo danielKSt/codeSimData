@@ -5,15 +5,25 @@
 \alias{re1000weInf}
 \title{Heavily reduced data for DNS data with Reynolds number = 1000, and Weber number = Infinity}
 \format{
-\subsection{re1000weInf}{
-
-A list with
+A list with six elements:
+\describe{
+\item{dimples}{39 x 128 x 128 integer array, where 1 marks the pixels of an attached vortex (dimple)}
+\item{scars}{39 x 128 x 128 integer array, where 1 marks the pixels of a scar}
+\item{surfDiv}{39 x 128 x 128 array with the surface divergence}
+\item{vortZ}{39 x 128 x 128 array with the vertical vorticity at the surface}
+\item{timescale}{Number of snapshots per integral time scale}
+\item{lengthscale}{Number of pixels per integral length scale}
 }
+The first index of each array is the snapshot, and the second and third are the pixel indices in the x and y
+direction.
 }
 \usage{
 re1000weInf
 }
 \description{
-Heavily reduced data for DNS data with Reynolds number = 1000, and Weber number = Infinity
+Surface fields and structure masks from the DNS with Reynolds number 1000 and infinite Weber number, small enough to
+include in the package and run the example analysis in the vignette. The spatial resolution is that of the full data,
+but only the first tenth of the simulation is included, and of that only every ceiling(T/4)-th snapshot, where T is
+the number of timesteps per integral time scale in the full data.
 }
 \keyword{datasets}

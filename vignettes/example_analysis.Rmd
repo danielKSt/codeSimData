@@ -53,75 +53,63 @@ ly <- dim(surfDiv)[3]
 
 # Data analysis
 
-We calculate the profile log likelihood for the global model:
+The model for the intensity of the scars and dimples is intensity = a*Z^b, where Z is a covariate calculated from the
+flow field. Z is constant within each pixel, so the likelihood is calculated exactly as a sum over the pixels.
+
+We calculate the profile log likelihood for the global model, where Z is the mean square of the field over each
+snapshot:
 
 ```{r log_lik_global_model}
-logLikGlobal.dimpDiv <- c(1:length(lags))
-logLikGlobal.dimpVort <- c(1:length(lags))
-logLikGlobal.scarDiv <- c(1:length(lags))
-logLikGlobal.scarVort <- c(1:length(lags))
-for (h_ind in 1:length(lags)) {
-  # Log-likelihood for surface divergence
-  res <- get.fit.specific.r.h(scars_list = scars, 
-                              dimples_list = dimples, 
-                              l_x = lx, 
-                              l_y = ly, 
-                              field = surfDiv, 
-                              tidspunkt = timesteps, 
-                              r = "infty", 
-                              h = lags[h_ind], 
-                              resType = "logLik")
-  
-  logLikGlobal.scarDiv[h_ind] <- res[1]
-  logLikGlobal.dimpDiv[h_ind] <- res[2]
-  
-  # Log-likelihood for vertical vorticity
-  res <- get.fit.specific.r.h(scars_list = scars, 
-                              dimples_list = dimples, 
-                              l_x = lx, 
-                              l_y = ly, 
-                              field = vortZ, 
-                              tidspunkt = timesteps, 
-                              r = "infty", 
-                              h = lags[h_ind], 
-                              resType = "logLik")
-  logLikGlobal.scarVort[h_ind] <- res[1]
-  logLikGlobal.dimpVort[h_ind] <- res[2]
-}
-rm(res)
+sDiv_global <- make.global.result.vectors(lags = lags,
+                                          field = surfDiv,
+                                          scars = scars,
+                                          dimples = dimples,
+                                          l_x = lx,
+                                          l_y = ly,
+                                          tidspunkt = timesteps)
+
+vortZ_global <- make.global.result.vectors(lags = lags,
+                                           field = vortZ,
+                                           scars = scars,
+                                           dimples = dimples,
+                                           l_x = lx,
+                                           l_y = ly,
+                                           tidspunkt = timesteps)
 ```
 
-We calculate the profile log likelihood for the local model:
+We calculate the profile log likelihood for the local model, where Z is the variance of the field within a circle of
+radius r:
 ```{r log_lik_local_model}
-sDiv_log_lik <- make.logLik.matrix(scars_list = scars,
-                   dimples_list = dimples,
-                   l_x = lx,
-                   l_y = ly,
-                   field = surfDiv,
-                   tidspunkt = timesteps,
-                   radiar = radii,
-                   lags = lags,
-                   radiiForPrint = c(2, 5, 10, 20, 30, 40))
+sDiv_log_lik <- make.result.matrices(radiar = radii,
+                                     lags = lags,
+                                     field = surfDiv,
+                                     scars = scars,
+                                     dimples = dimples,
+                                     l_x = lx,
+                                     l_y = ly,
+                                     tidspunkt = timesteps)
 
-vortZ_log_lik <- make.logLik.matrix(scars_list = scars,
-                   dimples_list = dimples,
-                   l_x = lx,
-                   l_y = ly,
-                   field = vortZ,
-                   tidspunkt = timesteps,
-                   radiar = radii,
-                   lags = lags,
-                   radiiForPrint = c(2, 5, 10, 20, 30, 40))
+vortZ_log_lik <- make.result.matrices(radiar = radii,
+                                      lags = lags,
+                                      field = vortZ,
+                                      scars = scars,
+                                      dimples = dimples,
+                                      l_x = lx,
+                                      l_y = ly,
+                                      tidspunkt = timesteps)
 ```
+
+`make.logLik.matrix` gives the same result by fitting the model with `mppm` from spatstat, but is much slower. It is
+still needed for experimental data, which `make.result.matrices` does not support yet.
 
 
 # Results and plots
 We compare the global and local models. Positive values here imply the local model outperforms the global model.
 ```{r glob_vs_loc}
-print(paste("DimpDiv", max(sDiv_log_lik$dimples) - max(logLikGlobal.dimpDiv)))
-print(paste("DimpVort", max(vortZ_log_lik$dimples) - max(logLikGlobal.dimpVort)))
-print(paste("ScarDiv", max(sDiv_log_lik$scars) - max(logLikGlobal.scarDiv)))
-print(paste("ScarVort", max(vortZ_log_lik$scars) - max(logLikGlobal.scarVort)))
+print(paste("DimpDiv", max(sDiv_log_lik$dimples) - max(sDiv_global$dimples)))
+print(paste("DimpVort", max(vortZ_log_lik$dimples) - max(vortZ_global$dimples)))
+print(paste("ScarDiv", max(sDiv_log_lik$scars) - max(sDiv_global$scars)))
+print(paste("ScarVort", max(vortZ_log_lik$scars) - max(vortZ_global$scars)))
 ```
 
 

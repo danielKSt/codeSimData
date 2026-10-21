@@ -14,7 +14,7 @@ make.points.list <- function(pointsList, l_x, l_y, tidspunkt){
   if(is.numeric(tidspunkt)){
     for(i in 1:length(tidspunkt)){
       t <- tidspunkt[i]
-      if(is.numeric(pointsList[[t]])){
+      if(is.empty.snapshot(pointsList[[t]])){
         # Assigning NULL would delete the element, so empty timesteps get a data frame with zero rows
         res[[i]] <- data.frame(x = numeric(0), y = numeric(0))
       } else {
@@ -26,7 +26,7 @@ make.points.list <- function(pointsList, l_x, l_y, tidspunkt){
     for(i in 1:length(tidspunkt)){
       ensemble <- tidspunkt[[i]][1]
       t <- tidspunkt[[i]][2]
-      if(is.numeric(pointsList[[ensemble]][[t]])){
+      if(is.empty.snapshot(pointsList[[ensemble]][[t]])){
         res[[i]] <- data.frame(x = numeric(0), y = numeric(0))
       } else {
         res[[i]] <- data.frame(x = pointsList[[ensemble]][[t]]$x*l_x,
@@ -245,9 +245,6 @@ get.logLik.specific.r.h <- function(r, h = NULL, field, scars, dimples, l_x, l_y
 #' @export
 make.result.matrices <- function(radiar, lags, field, scars, dimples, l_x, l_y, tidspunkt, localStat = "variance",
                                  radiiModulo = 1000L, radiiForPrint = -1){
-  if(any(radiar != round(radiar)) || max(radiar) >= radiiModulo){
-    stop("radiar must be whole numbers smaller than radiiModulo, otherwise the radii are not encoded correctly")
-  }
   scars <- make.points.list(pointsList = scars, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
   dimples <- make.points.list(pointsList = dimples, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
 
@@ -295,12 +292,18 @@ make.global.result.vectors <- function(lags, field, scars, dimples, l_x, l_y, ti
 #' Each element is radius + radiiModulo*lag, with one row per lag and one column per radius. This lets apply loop over
 #' every combination of radius and lag, which get.logLik.specific.r.h and get.fit.specific.r.h decode when h is NULL.
 #'
-#' @param radiar Vector with all radii for local variance
-#' @param lags Vector with all lag values to use
+#' @param radiar Vector with all radii for local variance, whole numbers between 0 and radiiModulo
+#' @param lags Vector with all lag values to use, whole numbers
 #' @param radiiModulo parameter for how to encode lag and radius
 #'
 #' @export
 make.input.matrix <- function(radiar, lags, radiiModulo = 1000L){
+  if(any(radiar != round(radiar)) || any(radiar < 0) || max(radiar) >= radiiModulo){
+    stop("radiar must be whole numbers between 0 and radiiModulo, otherwise the radii are not encoded correctly")
+  }
+  if(any(lags != round(lags))){
+    stop("lags must be whole numbers, otherwise the lags are not encoded correctly")
+  }
   res <- matrix(data = as.integer(radiar), ncol = length(radiar), nrow = length(lags), byrow = TRUE)
   for (h_i in 1:length(lags)) {
     res[h_i, ] <- res[h_i, ] + radiiModulo*lags[h_i]

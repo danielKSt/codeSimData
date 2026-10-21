@@ -32,7 +32,7 @@ prepare.points.dns <- function(indices, points){
   t <- 1
   firstPointNotFound <- TRUE
   while(firstPointNotFound){
-    if (!is.numeric(points[[indices[t]]])) {
+    if (!is.empty.snapshot(points[[indices[t]]])) {
       temp <- rbind(points[[indices[t]]])
 
       for(p in 1:length(temp$x)){
@@ -66,7 +66,7 @@ prepare.points.dns <- function(indices, points){
 
   timeOfFirstPoint <- t
   for (t in (timeOfFirstPoint+1):length(indices)) {
-    if(!is.numeric(points[[indices[t]]])){
+    if(!is.empty.snapshot(points[[indices[t]]])){
       temp <- rbind(points[[indices[t]]])
 
       for(p in 1:length(temp$x)){
@@ -248,7 +248,7 @@ prepare.points.dns.shrunk <- function(indices, points, xlim, ylim){
   t <- 1
   firstPointNotFound <- TRUE
   while(firstPointNotFound){
-    if (!is.numeric(points[[indices[t]]])) {
+    if (!is.empty.snapshot(points[[indices[t]]])) {
       if (point.in.shrunk(points = points[[indices[t]]], xlim = xlim, ylim = ylim)){
         temp <- points[[indices[t]]]
         temp <- temp[find.points.in.shrunk(points = temp, xlim = xlim, ylim = ylim), ]
@@ -270,7 +270,7 @@ prepare.points.dns.shrunk <- function(indices, points, xlim, ylim){
   }
   timeOfFirstPoint <- t
   for (t in (timeOfFirstPoint+1):length(indices)) {
-    if(!is.numeric(points[[indices[t]]])){
+    if(!is.empty.snapshot(points[[indices[t]]])){
       if(point.in.shrunk(points = points[[indices[t]]], xlim = xlim, ylim = ylim)){
         temp <- points[[indices[t]]]
         temp <- temp[find.points.in.shrunk(points = temp, xlim = xlim, ylim = ylim), ]
