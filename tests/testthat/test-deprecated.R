@@ -6,7 +6,7 @@ test_that("Scaling into a shrunk window works", {
 
   inShrunk <- find.points.in.shrunk(points = structures, xlim = lims, ylim = lims)
 
-  structures_shrunk <- scale.points.shrunk(points = structures[inShrunk, ], xlim = lims, ylim = lims)
+  structures_shrunk <- scale_points_shrunk(points = structures[inShrunk, ], xlim = lims, ylim = lims)
 
   expect_equal(structures_shrunk$x, expected = c(0, 0.25, 0.25, 0.5, 1.0))
   expect_equal(structures_shrunk$y, expected = c(0, 0.25, 1.0, 0.5, 1.0))

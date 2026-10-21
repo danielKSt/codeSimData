@@ -201,7 +201,7 @@ aic.given.radius.and.lag <- function(r_and_h_untransformed, vortices.pp, scars.p
 #' @param points dataframe of points
 #' @param xlim how much to shrink the window in the x direction
 #' @param ylim how much to shrink the window in the y direction
-scale.points.shrunk <- function(points, xlim, ylim){
+scale_points_shrunk <- function(points, xlim, ylim){
   points$x <- (points$x-xlim[1])/(xlim[2]-xlim[1])
   points$y <- (points$y-ylim[1])/(ylim[2]-ylim[1])
   return(points)
@@ -252,7 +252,7 @@ prepare.points.dns.shrunk <- function(indices, points, xlim, ylim){
       if (point.in.shrunk(points = points[[indices[t]]], xlim = xlim, ylim = ylim)){
         temp <- points[[indices[t]]]
         temp <- temp[find.points.in.shrunk(points = temp, xlim = xlim, ylim = ylim), ]
-        temp <- scale.points.shrunk(points = temp, xlim = xlim, ylim = ylim)
+        temp <- scale_points_shrunk(points = temp, xlim = xlim, ylim = ylim)
         temp <- rbind(temp)
         if(dim(temp)[1] > 0){
           firstPointNotFound <- FALSE
@@ -274,7 +274,7 @@ prepare.points.dns.shrunk <- function(indices, points, xlim, ylim){
       if(point.in.shrunk(points = points[[indices[t]]], xlim = xlim, ylim = ylim)){
         temp <- points[[indices[t]]]
         temp <- temp[find.points.in.shrunk(points = temp, xlim = xlim, ylim = ylim), ]
-        temp <- scale.points.shrunk(points = temp, xlim = xlim, ylim = ylim)
+        temp <- scale_points_shrunk(points = temp, xlim = xlim, ylim = ylim)
         temp <- rbind(temp)
         if(dim(temp)[1] > 0){
           l <- dim(temp)[1]

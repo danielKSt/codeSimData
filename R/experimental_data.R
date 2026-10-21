@@ -21,7 +21,7 @@ combine.covariates.matrices <- function(covariates, xdim, ydim){
 #' @param c_x how to scale x-axis
 #' @param c_y how to scale y-axis
 #'
-scale.points.skim <- function(points, c_x, c_y){
+scale_points_skim <- function(points, c_x, c_y){
   points$x <- c_x*(points$x-0.5)+0.5
   points$y <- c_y*(points$y-0.5)+0.5
   points <- points[points$x >= 0, ]
@@ -51,7 +51,7 @@ prepare.points.experimental <- function(indices, numberOfEnsembles, points, xdim
   while(firstPointNotFound){
     if (!is.empty.snapshot(points[[ensemble]][[indices[t]]])) {
       temp <- rbind(points[[ensemble]][[indices[t]]])
-      temp <- scale.points.skim(points = temp, c_x = c_x, c_y = c_y)
+      temp <- scale_points_skim(points = temp, c_x = c_x, c_y = c_y)
       if(dim(temp)[1] > 0){
         firstPointNotFound <- FALSE
         l <- dim(temp)[1]
@@ -73,7 +73,7 @@ prepare.points.experimental <- function(indices, numberOfEnsembles, points, xdim
   ensembleOfFirstPoint <- ensemble
   for (t in (timeOfFirstPoint+1):length(indices)) {
     if(!is.empty.snapshot(points[[ensembleOfFirstPoint]][[indices[t]]])){
-      temp <- scale.points.skim(points = points[[ensembleOfFirstPoint]][[indices[t]]], c_x = c_x, c_y = c_y)
+      temp <- scale_points_skim(points = points[[ensembleOfFirstPoint]][[indices[t]]], c_x = c_x, c_y = c_y)
       if(dim(temp)[1] > 0){
         l <- dim(temp)[1]
         pointsForAnalysis <- rbind(pointsForAnalysis, temp+c(rep(0, l), rep(t-1+(ensembleOfFirstPoint-1)*length(indices), l)))
@@ -83,7 +83,7 @@ prepare.points.experimental <- function(indices, numberOfEnsembles, points, xdim
   for (ensemble in (ensembleOfFirstPoint+1):numberOfEnsembles) {
     for (t in 1:length(indices)) {
       if(!is.empty.snapshot(points[[ensemble]][[indices[t]]])){
-        temp <- scale.points.skim(points = points[[ensemble]][[indices[t]]], c_x = c_x, c_y = c_y)
+        temp <- scale_points_skim(points = points[[ensemble]][[indices[t]]], c_x = c_x, c_y = c_y)
         if(dim(temp)[1] > 0){
           l <- dim(temp)[1]
           pointsForAnalysis <- rbind(pointsForAnalysis, temp+c(rep(0, l), rep(t-1+(ensemble-1)*length(indices), l)))

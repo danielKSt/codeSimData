@@ -56,11 +56,13 @@ export(surface.field.plot)
 export(surface.field.pp.plot)
 export(surfacePP.plot)
 importFrom(Rcpp,evalCpp)
-importFrom(ggplot2,aes)
-importFrom(ggplot2,geom_contour_filled)
-importFrom(ggplot2,geom_point)
-importFrom(ggplot2,geom_tile)
-importFrom(ggplot2,ggplot)
-importFrom(ggplot2,theme)
+importFrom(ggplot2,
+  aes,
+  geom_contour_filled,
+  geom_point,
+  geom_tile,
+  ggplot,
+  theme
+)
 importFrom(rlang,.data)
 useDynLib(codeSimData)
