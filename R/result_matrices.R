@@ -72,6 +72,49 @@ fit.given.covar <- function(Z, structures, l_x, l_y, returnParams, bInterval = c
   }
 }
 
+#' Fit the regression model with an added baseline intensity
+#' @description
+#' The regression model with an added baseline intensity nu_0 is
+#' intensity(x,y,t)=nu_0+a*Z(x,y,t)^b=a*(lambda+Z(x,y,t)^b),
+#' with b >= 0. Unlike in fit.given.covar, Z may be zero, and Z^b is then zero, also for b = 0. With nu_0 = 0 this is
+#' the model of fit.given.covar, so the log likelihood is at least as large as from fit.given.covar when its estimate of
+#' b is at least 0.
+#'
+#' @param Z TxMxN array of non-negative covariates
+#' @param structures List of scars/dimples locations, only at the time indices that we want to use
+#' @param l_x Window length in x direction
+#' @param l_y Window length in y direction
+#' @param returnParams Set to TRUE to return the parameters
+#' @param bGrid Values of b, at least 0, at which the profile likelihood is evaluated before it is maximised. The
+#' profile likelihood does not have to be concave in b, so the grid should be fine enough to find the right maximum
+#'
+#' @returns The log likelihood, or a list with a, b, nu0, lambda = nu0/a, the share w of the expected number of points
+#' that comes from the baseline, and the log likelihood. When b = 0 and Z has no zeros the intensity is constant for
+#' every w, and w = 0 is returned
+#'
+#' @export
+fit.given.covar.baseline <- function(Z, structures, l_x, l_y, returnParams,
+                                     bGrid = c(0, 0.25, 0.5, 1, 1.5, 2, 3, 4, 6, 8)){
+  if(any(!is.finite(Z)) || any(Z < 0)){
+    stop("The covariate Z must be non-negative and finite")
+  }
+  if(all(Z == 0)){
+    stop("The covariate Z is zero everywhere")
+  }
+  pixelArea <- l_x*l_y/(dim(Z)[2]*dim(Z)[3])
+  totalArea <- pixelArea*length(Z)
+  logZAtPoints <- log(get_Z_at_points(Z = Z, structures = structures, l_x = l_x, l_y = l_y))
+  fit <- find_baseline_mle(logZ = log(Z[Z > 0]), logZAtPoints = logZAtPoints, pixelArea = pixelArea,
+                           totalArea = totalArea, bGrid = bGrid)
+  if(!returnParams){
+    return(fit$logLik)
+  }
+  n <- length(logZAtPoints)
+  nu0 <- fit$w*n/totalArea
+  a <- (1 - fit$w)*n/exp(fit$logS)
+  return(list(a = a, b = fit$b, nu0 = nu0, lambda = nu0/a, w = fit$w, logLik = fit$logLik))
+}
+
 #' Fit the global model from the paper
 #' @description
 #' In the global model the covariate is constant over each snapshot, Z(x,y,t)=Z_t, so the intensity is

@@ -113,3 +113,171 @@ get_Z_at_coord <- function(Z, coord, t, l_x, l_y){
   yInd <- min(floor(coord[2]*dim(Z)[3]/l_y) + 1, dim(Z)[3])
   return(Z[t, xInd, yInd])
 }
+
+
+#' Function for evaluating Z at all the scar/dimple centroids
+#' @description
+#' The values Z(x,y,t) at each scar/dimple, with the same pixel convention as get_sumLogZ_and_n
+#'
+#' @param Z TxMxN array
+#' @param structures List of data frames with the x and y coordinates of the scars/dimples, one data frame per
+#' timestep in Z
+#' @param l_x Length in x direction of window in which the structures are contained
+#' @param l_y Length in y direction of window in which the structures are contained
+#'
+#' @returns Vector with one value per point, ordered by timestep
+get_Z_at_points <- function(Z, structures, l_x, l_y){
+  # as.numeric gives numeric(0) instead of NULL when there are no points
+  return(as.numeric(unlist(lapply(seq_along(structures), function(t){
+    vapply(seq_len(nrow(structures[[t]])), function(i){
+      get_Z_at_coord(Z, c(structures[[t]]$x[i], structures[[t]]$y[i]), t, l_x, l_y)
+    }, numeric(1))
+  }))))
+}
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Added baseline intensity
+#
+# The model nu(x,y,t) = nu_0 + a*Z(x,y,t)^b = a*(lambda + Z(x,y,t)^b), with b >= 0. Z may be zero, and Z^b is then zero
+# also for b = 0, which is the limit from b > 0. With A the total area of all snapshots and S_b the integral of Z^b over
+# all snapshots, the maximum likelihood estimates satisfy nu_0*A + a*S_b = n, the number of points. Instead of lambda,
+# the functions below use the share w = nu_0*A/n of the expected count that comes from the baseline, so that
+#   nu_0 = w*n/A,  a = (1-w)*n/S_b,  lambda = w*S_b/((1-w)*A).
+# The profile log likelihood is then
+#   l(w, b) = n*log(n) - n + sum_i log(w/A + (1-w)*Z_i^b/S_b),
+# which is concave in w for fixed b. w lies in [0, 1], where w = 0 is the model without baseline and w = 1 a constant
+# intensity.
+# ----------------------------------------------------------------------------------------------------------------------
+
+#' Function for calculating the complete Poisson likelihood with an added baseline intensity
+#' @description
+#' Calculates the log likelihood of the model nu = nu_0 + a*Z^b, up to the same constant as
+#' calc_likelihood_poisson_complete
+#'
+#' @param nu0 Baseline intensity
+#' @param a Parameter a
+#' @param b Parameter b, at least 0
+#' @param logZ Logarithm of the covariate at the pixels where it is positive
+#' @param logZAtPoints Logarithm of the covariate at the dimple/scar locations, -Inf where the covariate is zero
+#' @param pixelArea Area of a single pixel
+#' @param totalArea Area of all the pixels, also those where the covariate is zero
+#'
+#' @export
+calc_likelihood_baseline_complete <- function(nu0, a, b, logZ, logZAtPoints, pixelArea, totalArea){
+  # log(nu_0 + a*Z^b) and the integral a*S_b are calculated from log(Z), since Z^b overflows or underflows when b is
+  # large
+  logNu <- log_add_exp(log(nu0), log(a) + power_log(b, logZAtPoints))
+  return(sum(logNu) - nu0*totalArea - exp(log(a) + log(pixelArea) + log_sum_exp(b*logZ)))
+}
+
+#' Function for calculating the profile Poisson likelihood with an added baseline intensity as a function of b
+#' @description
+#' Calculates the log likelihood for a given b, maximised over nu_0 and a, see find_w_mle
+#'
+#' @param b Parameter value, at least 0
+#' @param logZ Logarithm of the covariate at the pixels where it is positive
+#' @param logZAtPoints Logarithm of the covariate at the dimple/scar locations, -Inf where the covariate is zero
+#' @param pixelArea Area of a single pixel
+#' @param totalArea Area of all the pixels, also those where the covariate is zero
+#'
+#' @export
+calc_likelihood_baseline_b <- function(b, logZ, logZAtPoints, pixelArea, totalArea){
+  return(find_w_mle(b = b, logZ = logZ, logZAtPoints = logZAtPoints, pixelArea = pixelArea,
+                    totalArea = totalArea)$logLik)
+}
+
+#' Find the maximum likelihood estimate of w for a given b
+#' @description
+#' The profile likelihood is concave in w, so the estimate is 0 or 1 when the derivative at that end of the interval
+#' from 0 to 1 points out of the interval, and otherwise the maximum inside the interval
+#'
+#' @param b Parameter value, at least 0
+#' @param logZ Logarithm of the covariate at the pixels where it is positive
+#' @param logZAtPoints Logarithm of the covariate at the dimple/scar locations, -Inf where the covariate is zero
+#' @param pixelArea Area of a single pixel
+#' @param totalArea Area of all the pixels, also those where the covariate is zero
+#'
+#' @returns List with w, log(S_b) and the log likelihood
+find_w_mle <- function(b, logZ, logZAtPoints, pixelArea, totalArea){
+  n <- length(logZAtPoints)
+  logS <- log(pixelArea) + log_sum_exp(b*logZ)
+  if(n == 0){
+    # Without points the estimates of nu_0 and a are 0, and so is the log likelihood
+    return(list(w = NA_real_, logS = logS, logLik = 0))
+  }
+  # With c_i = Z_i^b/S_b and alpha = 1/A the profile likelihood is n*log(n) - n + sum(log(w*alpha + (1-w)*c_i))
+  logC <- power_log(b, logZAtPoints) - logS
+  alpha <- 1/totalArea
+  profile <- function(w){
+    if(w == 0) sum(logC) else sum(log(w*alpha + (1-w)*exp(logC)))
+  }
+  # The derivative is alpha*sum(1/c_i) - n at w = 0, which is infinite when a point is on a zero pixel, and
+  # n - sum(c_i)/alpha at w = 1
+  if(alpha*sum(exp(-logC)) <= n){
+    w <- 0
+  } else if(sum(exp(logC))/alpha <= n){
+    w <- 1
+  } else {
+    w <- stats::optimize(f = profile, interval = c(0, 1), maximum = TRUE, tol = 1e-10)$maximum
+  }
+  return(list(w = w, logS = logS, logLik = n*log(n) - n + profile(w)))
+}
+
+#' Find the maximum likelihood estimates of b and w
+#' @description
+#' The profile likelihood in b does not have to be concave, so it is first evaluated at bGrid, and then maximised
+#' between the neighbours of the best grid value. The grid is extended when the best value is its largest
+#'
+#' @param logZ Logarithm of the covariate at the pixels where it is positive
+#' @param logZAtPoints Logarithm of the covariate at the dimple/scar locations, -Inf where the covariate is zero
+#' @param pixelArea Area of a single pixel
+#' @param totalArea Area of all the pixels, also those where the covariate is zero
+#' @param bGrid Values of b, at least 0, at which the profile likelihood is evaluated first
+#'
+#' @returns List with b, w, log(S_b) and the log likelihood
+find_baseline_mle <- function(logZ, logZAtPoints, pixelArea, totalArea, bGrid){
+  if(any(bGrid < 0)){
+    stop("b must be at least 0 in the model with a baseline intensity")
+  }
+  profile <- function(b){
+    calc_likelihood_baseline_b(b = b, logZ = logZ, logZAtPoints = logZAtPoints, pixelArea = pixelArea,
+                               totalArea = totalArea)
+  }
+  bGrid <- sort(unique(bGrid))
+  values <- vapply(bGrid, profile, numeric(1))
+  while(which.max(values) == length(bGrid)){
+    if(max(bGrid) >= 1000){
+      warning("The estimate of b is at the largest value tried, ", max(bGrid))
+      break
+    }
+    bGrid <- c(bGrid, 2*max(bGrid, 0.5))
+    values <- c(values, profile(max(bGrid)))
+  }
+  k <- which.max(values)
+  opt <- stats::optimize(f = profile, interval = bGrid[c(max(k - 1, 1), min(k + 1, length(bGrid)))], maximum = TRUE)
+  # optimize does not evaluate the ends of the interval, so the best grid value is kept if it is better
+  b <- if(opt$objective > values[k]) opt$maximum else bGrid[k]
+  return(c(list(b = b), find_w_mle(b = b, logZ = logZ, logZAtPoints = logZAtPoints, pixelArea = pixelArea,
+                                   totalArea = totalArea)))
+}
+
+#' Calculate b*log(Z) where Z^b is zero for Z = 0, also for b = 0
+#'
+#' @param b Parameter value, at least 0
+#' @param logZ Numeric vector with the logarithm of the covariate, -Inf where it is zero
+power_log <- function(b, logZ){
+  return(ifelse(logZ == -Inf, -Inf, b*logZ))
+}
+
+#' Calculate log(exp(x) + exp(y)) without overflow or underflow
+#'
+#' @param x Numeric vector
+#' @param y Numeric vector
+log_add_exp <- function(x, y){
+  m <- pmax(x, y)
+  res <- m + log1p(exp(-abs(x - y)))
+  # Where both are -Inf, x - y is NaN
+  res[m == -Inf] <- -Inf
+  return(res)
+}
