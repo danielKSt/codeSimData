@@ -7,8 +7,9 @@
 get.logLik.global.h(
   h,
   field,
-  scars,
-  dimples,
+  scars = NULL,
+  dimples = NULL,
+  detectedDimples = NULL,
   l_x,
   l_y,
   tidspunkt,
@@ -20,9 +21,13 @@ get.logLik.global.h(
 
 \item{field}{TxMxN array with the field the covariate is calculated from}
 
-\item{scars}{List of scars at each timestep in tidspunkt, as returned by make.points.list}
+\item{scars}{List of scars at each timestep in tidspunkt, as returned by make.points.list, or NULL to leave them out}
 
-\item{dimples}{List of dimples at each timestep in tidspunkt, as returned by make.points.list}
+\item{dimples}{List of dimples at each timestep in tidspunkt, as returned by make.points.list, or NULL to leave them
+out}
+
+\item{detectedDimples}{List of dimples detected from the surface elevation at each timestep in tidspunkt, as returned
+by make.points.list, or NULL to leave them out}
 
 \item{l_x}{Window length in x direction}
 
@@ -34,7 +39,7 @@ get.logLik.global.h(
 snapshot, and "variance" and "meanSquare" both give the mean square}
 }
 \value{
-Named vector with the log likelihood for the scars and for the dimples
+Named vector with the log likelihood for each of scars, dimples and detectedDimples that is not NULL
 }
 \description{
 Compute the log likelihood of the global model, where the covariate is a statistic of the whole snapshot

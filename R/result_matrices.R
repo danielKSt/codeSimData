@@ -155,27 +155,50 @@ fit.global.covar <- function(Zglobal, structures, l_x, l_y, returnParams, bInter
   }
 }
 
+#' Collect the point sets that are given
+#' @description
+#' Puts the point sets that are not NULL in a named list, in the order scars, dimples, detectedDimples
+#'
+#' @param scars List of scars, or NULL
+#' @param dimples List of dimples, or NULL
+#' @param detectedDimples List of dimples detected from the surface elevation, or NULL
+#'
+#' @returns Named list with the point sets that are not NULL
+collect.point.sets <- function(scars, dimples, detectedDimples){
+  pointSets <- list(scars = scars, dimples = dimples, detectedDimples = detectedDimples)
+  pointSets <- pointSets[!vapply(pointSets, is.null, logical(1))]
+  if(length(pointSets) == 0){
+    stop("At least one of scars, dimples and detectedDimples must be given")
+  }
+  return(pointSets)
+}
+
 #' Calculate the log likelihood of the global model for a specific lag
 #' @description
 #' Compute the log likelihood of the global model, where the covariate is a statistic of the whole snapshot
 #'
 #' @param h Lag, in timesteps, from the snapshots of the points to the snapshots of the field
 #' @param field TxMxN array with the field the covariate is calculated from
-#' @param scars List of scars at each timestep in tidspunkt, as returned by make.points.list
-#' @param dimples List of dimples at each timestep in tidspunkt, as returned by make.points.list
+#' @param scars List of scars at each timestep in tidspunkt, as returned by make.points.list, or NULL to leave them out
+#' @param dimples List of dimples at each timestep in tidspunkt, as returned by make.points.list, or NULL to leave them
+#' out
+#' @param detectedDimples List of dimples detected from the surface elevation at each timestep in tidspunkt, as returned
+#' by make.points.list, or NULL to leave them out
 #' @param l_x Window length in x direction
 #' @param l_y Window length in y direction
 #' @param tidspunkt Vector with the timesteps of the points
 #' @param localStat Statistic of the snapshot used as covariate. "meanAbs" gives the mean absolute value of the
 #' snapshot, and "variance" and "meanSquare" both give the mean square
 #'
-#' @returns Named vector with the log likelihood for the scars and for the dimples
+#' @returns Named vector with the log likelihood for each of scars, dimples and detectedDimples that is not NULL
 #'
 #' @export
-get.logLik.global.h <- function(h, field, scars, dimples, l_x, l_y, tidspunkt, localStat = "variance"){
+get.logLik.global.h <- function(h, field, scars = NULL, dimples = NULL, detectedDimples = NULL, l_x, l_y, tidspunkt,
+                                localStat = "variance"){
   localStat <- match.arg(localStat, choices = c("variance", "meanSquare", "meanAbs"))
-  if(length(scars) != length(tidspunkt) || length(dimples) != length(tidspunkt)){
-    stop("scars and dimples must have one element per timestep in tidspunkt")
+  pointSets <- collect.point.sets(scars = scars, dimples = dimples, detectedDimples = detectedDimples)
+  if(any(lengths(pointSets) != length(tidspunkt))){
+    stop("scars, dimples and detectedDimples must have one element per timestep in tidspunkt")
   }
   if(!is.numeric(tidspunkt)){
     stop("Experimental data, with tidspunkt as a list of (ensemble, timestep), is not supported yet")
@@ -185,9 +208,9 @@ get.logLik.global.h <- function(h, field, scars, dimples, l_x, l_y, tidspunkt, l
     switch(localStat, meanAbs = mean(abs(field[t, , ])), mean(field[t, , ]^2))
   }, numeric(1))
 
-  logLik.scars <- fit.global.covar(Zglobal = Zglobal, structures = scars, l_x = l_x, l_y = l_y, returnParams = FALSE)
-  logLik.dimples <- fit.global.covar(Zglobal = Zglobal, structures = dimples, l_x = l_x, l_y = l_y, returnParams = FALSE)
-  return(c(scars = logLik.scars, dimples = logLik.dimples))
+  return(vapply(pointSets, function(structures){
+    fit.global.covar(Zglobal = Zglobal, structures = structures, l_x = l_x, l_y = l_y, returnParams = FALSE)
+  }, numeric(1)))
 }
 
 #' Calculate the log likelihood for a specific radius and lag
@@ -199,8 +222,11 @@ get.logLik.global.h <- function(h, field, scars, dimples, l_x, l_y, tidspunkt, l
 #' and lag encoded in one number, see make.input.matrix
 #' @param h Lag, in timesteps, from the snapshots of the points to the snapshots of the field
 #' @param field TxMxN array with the field the covariate is calculated from
-#' @param scars List of scars at each timestep in tidspunkt, as returned by make.points.list
-#' @param dimples List of dimples at each timestep in tidspunkt, as returned by make.points.list
+#' @param scars List of scars at each timestep in tidspunkt, as returned by make.points.list, or NULL to leave them out
+#' @param dimples List of dimples at each timestep in tidspunkt, as returned by make.points.list, or NULL to leave them
+#' out
+#' @param detectedDimples List of dimples detected from the surface elevation at each timestep in tidspunkt, as returned
+#' by make.points.list, or NULL to leave them out
 #' @param l_x Window length in x direction
 #' @param l_y Window length in y direction
 #' @param tidspunkt Vector with the timesteps of the points
@@ -211,14 +237,16 @@ get.logLik.global.h <- function(h, field, scars, dimples, l_x, l_y, tidspunkt, l
 #' @param radiiForPrint Radii for which to print the radius, to follow the progress
 #' @param startLag The radius is printed when the lag equals startLag
 #'
-#' @returns Named vector with the log likelihood for the scars and for the dimples
+#' @returns Named vector with the log likelihood for each of scars, dimples and detectedDimples that is not NULL
 #'
 #' @export
-get.logLik.specific.r.h <- function(r, h = NULL, field, scars, dimples, l_x, l_y, tidspunkt, localStat = "variance",
-                                    radiiModulo = 1000L, radiiForPrint = -1, startLag = 0){
+get.logLik.specific.r.h <- function(r, h = NULL, field, scars = NULL, dimples = NULL, detectedDimples = NULL, l_x, l_y,
+                                    tidspunkt, localStat = "variance", radiiModulo = 1000L, radiiForPrint = -1,
+                                    startLag = 0){
   localStat <- match.arg(localStat, choices = c("variance", "meanSquare", "meanAbs"))
-  if(length(scars) != length(tidspunkt) || length(dimples) != length(tidspunkt)){
-    stop("scars and dimples must have one element per timestep in tidspunkt")
+  pointSets <- collect.point.sets(scars = scars, dimples = dimples, detectedDimples = detectedDimples)
+  if(any(lengths(pointSets) != length(tidspunkt))){
+    stop("scars, dimples and detectedDimples must have one element per timestep in tidspunkt")
   }
   if(is.null(h)){
     r_and_h_untransformed <- r
@@ -228,8 +256,8 @@ get.logLik.specific.r.h <- function(r, h = NULL, field, scars, dimples, l_x, l_y
   }
 
   if(identical(r, "infty")){
-    return(get.logLik.global.h(h = h, field = field, scars = scars, dimples = dimples, l_x = l_x, l_y = l_y,
-                               tidspunkt = tidspunkt, localStat = localStat))
+    return(get.logLik.global.h(h = h, field = field, scars = scars, dimples = dimples, detectedDimples = detectedDimples,
+                               l_x = l_x, l_y = l_y, tidspunkt = tidspunkt, localStat = localStat))
   }
 
   if(is.numeric(tidspunkt)){
@@ -260,22 +288,24 @@ get.logLik.specific.r.h <- function(r, h = NULL, field, scars, dimples, l_x, l_y
                                  inDims = c(dim(field)[2], dim(field)[3], dim(vindauga)[2], dim(skall)[2]))
   }
 
-  logLik.scars <- fit.given.covar(Z = Z, structures = scars, l_x = l_x, l_y = l_y, returnParams = FALSE)
-  logLik.dimples <- fit.given.covar(Z = Z, structures = dimples, l_x = l_x, l_y = l_y, returnParams = FALSE)
-  return(c(scars = logLik.scars, dimples = logLik.dimples))
+  return(vapply(pointSets, function(structures){
+    fit.given.covar(Z = Z, structures = structures, l_x = l_x, l_y = l_y, returnParams = FALSE)
+  }, numeric(1)))
 }
 
 
 #' Make an array with the regression results for each choice of radii and lag
 #' @description
-#' Use this to calculate the log likelihood of the local model for scars and dimples, for every combination of radius
-#' and lag
+#' Use this to calculate the log likelihood of the local model for scars, dimples and dimples detected from the surface
+#' elevation, for every combination of radius and lag
 #'
 #' @param radiar Vector of radii in pixels. These must be whole numbers, since make.input.matrix stores them as integers
 #' @param lags Vector of lags in timesteps
 #' @param field TxMxN array with the field the covariate is calculated from
-#' @param scars Complete list of scars for all timesteps, in the unit square
-#' @param dimples Complete list of dimples for all timesteps, in the unit square
+#' @param scars Complete list of scars for all timesteps, in the unit square, or NULL to leave them out
+#' @param dimples Complete list of dimples for all timesteps, in the unit square, or NULL to leave them out
+#' @param detectedDimples Complete list of dimples detected from the surface elevation for all timesteps, in the unit
+#' square, or NULL to leave them out
 #' @param l_x Window length in x direction
 #' @param l_y Window length in y direction
 #' @param tidspunkt Vector with the timesteps of the points
@@ -283,50 +313,61 @@ get.logLik.specific.r.h <- function(r, h = NULL, field, scars, dimples, l_x, l_y
 #' @param radiiModulo Parameter for encoding radius and lag in one number, see make.input.matrix
 #' @param radiiForPrint Radii for which to print the radius, to follow the progress
 #'
-#' @returns List with the matrices scars and dimples, with one row per lag and one column per radius
+#' @returns List with one matrix for each of scars, dimples and detectedDimples that is not NULL, with one row per lag
+#' and one column per radius
 #'
 #' @export
-make.result.matrices <- function(radiar, lags, field, scars, dimples, l_x, l_y, tidspunkt, localStat = "variance",
-                                 radiiModulo = 1000L, radiiForPrint = -1){
-  scars <- make.points.list(pointsList = scars, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
-  dimples <- make.points.list(pointsList = dimples, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
+make.result.matrices <- function(radiar, lags, field, scars = NULL, dimples = NULL, detectedDimples = NULL, l_x, l_y,
+                                 tidspunkt, localStat = "variance", radiiModulo = 1000L, radiiForPrint = -1){
+  pointSets <- lapply(collect.point.sets(scars = scars, dimples = dimples, detectedDimples = detectedDimples),
+                      make.points.list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
 
   inputMatrix <- make.input.matrix(radiar = radiar, lags = lags, radiiModulo = radiiModulo)
 
-  resMatrices <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.logLik.specific.r.h, h = NULL, field = field,
-                       scars = scars, dimples = dimples, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt,
-                       localStat = localStat, radiiModulo = radiiModulo, radiiForPrint = radiiForPrint,
-                       startLag = lags[1])
+  resArray <- apply(X = inputMatrix, MARGIN = c(1, 2), FUN = get.logLik.specific.r.h, h = NULL, field = field,
+                    scars = pointSets$scars, dimples = pointSets$dimples, detectedDimples = pointSets$detectedDimples,
+                    l_x = l_x, l_y = l_y, tidspunkt = tidspunkt, localStat = localStat, radiiModulo = radiiModulo,
+                    radiiForPrint = radiiForPrint, startLag = lags[1])
+  # apply leaves out the first dimension when there is only one point set
+  resArray <- array(data = resArray, dim = c(length(pointSets), length(lags), length(radiar)))
   # matrix() keeps the result a matrix when there is only one lag or one radius
-  resDimnames <- list(lag = lags, radius = radiar)
-  res.scars <- matrix(data = resMatrices["scars", , ], nrow = length(lags), ncol = length(radiar), dimnames = resDimnames)
-  res.dimples <- matrix(data = resMatrices["dimples", , ], nrow = length(lags), ncol = length(radiar), dimnames = resDimnames)
-  return(list(scars = res.scars, dimples = res.dimples))
+  res <- lapply(seq_along(pointSets), function(k){
+    matrix(data = resArray[k, , ], nrow = length(lags), ncol = length(radiar), dimnames = list(lag = lags, radius = radiar))
+  })
+  return(stats::setNames(res, names(pointSets)))
 }
 
 #' Make vectors with the log likelihood of the global model for each lag
 #' @description
-#' Use this to calculate the log likelihood of the global model for scars and dimples, for every lag
+#' Use this to calculate the log likelihood of the global model for scars, dimples and dimples detected from the
+#' surface elevation, for every lag
 #'
 #' @param lags Vector of lags in timesteps
 #' @param field TxMxN array with the field the covariate is calculated from
-#' @param scars Complete list of scars for all timesteps, in the unit square
-#' @param dimples Complete list of dimples for all timesteps, in the unit square
+#' @param scars Complete list of scars for all timesteps, in the unit square, or NULL to leave them out
+#' @param dimples Complete list of dimples for all timesteps, in the unit square, or NULL to leave them out
+#' @param detectedDimples Complete list of dimples detected from the surface elevation for all timesteps, in the unit
+#' square, or NULL to leave them out
 #' @param l_x Window length in x direction
 #' @param l_y Window length in y direction
 #' @param tidspunkt Vector with the timesteps of the points
 #' @param localStat Statistic of the snapshot used as covariate, see get.logLik.global.h
 #'
-#' @returns List with the vectors scars and dimples, with one element per lag
+#' @returns List with one vector for each of scars, dimples and detectedDimples that is not NULL, with one element per
+#' lag
 #'
 #' @export
-make.global.result.vectors <- function(lags, field, scars, dimples, l_x, l_y, tidspunkt, localStat = "variance"){
-  scars <- make.points.list(pointsList = scars, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
-  dimples <- make.points.list(pointsList = dimples, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
+make.global.result.vectors <- function(lags, field, scars = NULL, dimples = NULL, detectedDimples = NULL, l_x, l_y,
+                                       tidspunkt, localStat = "variance"){
+  pointSets <- lapply(collect.point.sets(scars = scars, dimples = dimples, detectedDimples = detectedDimples),
+                      make.points.list, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt)
 
-  res <- vapply(X = lags, FUN = get.logLik.global.h, FUN.VALUE = numeric(2), field = field, scars = scars,
-                dimples = dimples, l_x = l_x, l_y = l_y, tidspunkt = tidspunkt, localStat = localStat)
-  return(list(scars = stats::setNames(res["scars", ], lags), dimples = stats::setNames(res["dimples", ], lags)))
+  res <- vapply(X = lags, FUN = get.logLik.global.h, FUN.VALUE = numeric(length(pointSets)), field = field,
+                scars = pointSets$scars, dimples = pointSets$dimples, detectedDimples = pointSets$detectedDimples,
+                l_x = l_x, l_y = l_y, tidspunkt = tidspunkt, localStat = localStat)
+  # vapply gives a vector instead of a matrix when there is only one point set
+  res <- matrix(data = res, nrow = length(pointSets))
+  return(stats::setNames(lapply(seq_along(pointSets), function(k){stats::setNames(res[k, ], lags)}), names(pointSets)))
 }
 
 #' Function for making a matrix containing information both on the lag and radius to be used for each index in the

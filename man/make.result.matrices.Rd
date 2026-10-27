@@ -8,8 +8,9 @@ make.result.matrices(
   radiar,
   lags,
   field,
-  scars,
-  dimples,
+  scars = NULL,
+  dimples = NULL,
+  detectedDimples = NULL,
   l_x,
   l_y,
   tidspunkt,
@@ -25,9 +26,12 @@ make.result.matrices(
 
 \item{field}{TxMxN array with the field the covariate is calculated from}
 
-\item{scars}{Complete list of scars for all timesteps, in the unit square}
+\item{scars}{Complete list of scars for all timesteps, in the unit square, or NULL to leave them out}
 
-\item{dimples}{Complete list of dimples for all timesteps, in the unit square}
+\item{dimples}{Complete list of dimples for all timesteps, in the unit square, or NULL to leave them out}
+
+\item{detectedDimples}{Complete list of dimples detected from the surface elevation for all timesteps, in the unit
+square, or NULL to leave them out}
 
 \item{l_x}{Window length in x direction}
 
@@ -42,9 +46,10 @@ make.result.matrices(
 \item{radiiForPrint}{Radii for which to print the radius, to follow the progress}
 }
 \value{
-List with the matrices scars and dimples, with one row per lag and one column per radius
+List with one matrix for each of scars, dimples and detectedDimples that is not NULL, with one row per lag
+and one column per radius
 }
 \description{
-Use this to calculate the log likelihood of the local model for scars and dimples, for every combination of radius
-and lag
+Use this to calculate the log likelihood of the local model for scars, dimples and dimples detected from the surface
+elevation, for every combination of radius and lag
 }

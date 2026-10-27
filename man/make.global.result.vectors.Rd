@@ -7,8 +7,9 @@
 make.global.result.vectors(
   lags,
   field,
-  scars,
-  dimples,
+  scars = NULL,
+  dimples = NULL,
+  detectedDimples = NULL,
   l_x,
   l_y,
   tidspunkt,
@@ -20,9 +21,12 @@ make.global.result.vectors(
 
 \item{field}{TxMxN array with the field the covariate is calculated from}
 
-\item{scars}{Complete list of scars for all timesteps, in the unit square}
+\item{scars}{Complete list of scars for all timesteps, in the unit square, or NULL to leave them out}
 
-\item{dimples}{Complete list of dimples for all timesteps, in the unit square}
+\item{dimples}{Complete list of dimples for all timesteps, in the unit square, or NULL to leave them out}
+
+\item{detectedDimples}{Complete list of dimples detected from the surface elevation for all timesteps, in the unit
+square, or NULL to leave them out}
 
 \item{l_x}{Window length in x direction}
 
@@ -33,8 +37,10 @@ make.global.result.vectors(
 \item{localStat}{Statistic of the snapshot used as covariate, see get.logLik.global.h}
 }
 \value{
-List with the vectors scars and dimples, with one element per lag
+List with one vector for each of scars, dimples and detectedDimples that is not NULL, with one element per
+lag
 }
 \description{
-Use this to calculate the log likelihood of the global model for scars and dimples, for every lag
+Use this to calculate the log likelihood of the global model for scars, dimples and dimples detected from the
+surface elevation, for every lag
 }

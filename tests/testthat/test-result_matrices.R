@@ -192,3 +192,51 @@ test_that("Empty timesteps can be stored as 0 or as a data frame with zero rows"
   resSpatstat <- make.points.list.spatstat(points_list = pointsList, l_x = 2, l_y = 4, tidspunkt = 1:3)
   expect_equal(sapply(resSpatstat, spatstat.geom::npoints), c(0, 0, 1))
 })
+
+test_that("Point sets can be left out, and detected dimples give their own results", {
+  setup <- make.likelihood.test.setup()
+  tidspunkt <- 2:4
+  radiar <- c(1, 2)
+  lags <- c(-1, 0)
+  local <- function(...){
+    make.result.matrices(radiar = radiar, lags = lags, field = setup$field, l_x = setup$l_x, l_y = setup$l_y,
+                         tidspunkt = tidspunkt, ...)
+  }
+  global <- function(...){
+    make.global.result.vectors(lags = lags, field = setup$field, l_x = setup$l_x, l_y = setup$l_y,
+                               tidspunkt = tidspunkt, ...)
+  }
+
+  # The dimples are used as detected dimples too, so their results must be the same
+  for(calc in list(local, global)){
+    both <- calc(scars = setup$scars, dimples = setup$dimples)
+    all <- calc(scars = setup$scars, dimples = setup$dimples, detectedDimples = setup$dimples)
+    expect_named(all, c("scars", "dimples", "detectedDimples"))
+    expect_equal(all$detectedDimples, both$dimples)
+    expect_equal(all[c("scars", "dimples")], both)
+
+    onlyScars <- calc(scars = setup$scars)
+    expect_named(onlyScars, "scars")
+    expect_equal(onlyScars$scars, both$scars)
+
+    onlyDetected <- calc(detectedDimples = setup$dimples)
+    expect_named(onlyDetected, "detectedDimples")
+    expect_equal(onlyDetected$detectedDimples, both$dimples)
+
+    expect_error(calc(), "At least one")
+  }
+
+  points <- prepare.likelihood.test.points(setup = setup, tidspunkt = tidspunkt)
+  for(r in list(2, "infty")){
+    res <- get.logLik.specific.r.h(r = r, h = 0, field = setup$field, dimples = points$dimples,
+                                   detectedDimples = points$scars, l_x = setup$l_x, l_y = setup$l_y,
+                                   tidspunkt = tidspunkt)
+    expected <- get.logLik.specific.r.h(r = r, h = 0, field = setup$field, scars = points$scars,
+                                        dimples = points$dimples, l_x = setup$l_x, l_y = setup$l_y,
+                                        tidspunkt = tidspunkt)
+    expect_equal(res, c(dimples = expected[["dimples"]], detectedDimples = expected[["scars"]]))
+  }
+  expect_error(get.logLik.specific.r.h(r = 2, h = 0, field = setup$field, detectedDimples = points$scars[1:2],
+                                       l_x = setup$l_x, l_y = setup$l_y, tidspunkt = tidspunkt),
+               "one element per timestep")
+})
