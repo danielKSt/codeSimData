@@ -3,7 +3,8 @@
 
 #' Function for calculating the Poisson likelihood directly as a function of b
 #' @description
-#' Calculates the simultaneous likelihood for
+#' Calculates the simultaneous likelihood for the model intensity = a*Z^b, maximised over a. With Z in place of logZ it
+#' is the likelihood of the model with the intensity on log scale, log(intensity) = beta_0 + b*Z
 #'
 #' @param b Parameter value
 #' @param logZ TxMxN array with the logarithm of the covariate
@@ -19,7 +20,8 @@ calc_likelihood_poisson_b <- function(b, logZ, sumLogZ, n, pixelArea){
 
 #' Function for calculating the complete Poisson likelihood
 #' @description
-#' Calculates the simultaneous likelihood for
+#' Calculates the simultaneous likelihood for the model intensity = a*Z^b. With Z in place of logZ it is the likelihood
+#' of the model with the intensity on log scale, log(intensity) = logA + b*Z
 #'
 #' @param logA Logarithm of the parameter a, also named beta_0
 #' @param b Parameter value - also named beta_1
@@ -280,4 +282,38 @@ log_add_exp <- function(x, y){
   # Where both are -Inf, x - y is NaN
   res[m == -Inf] <- -Inf
   return(res)
+}
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Intensity on log scale
+#
+# The standard model of Poisson regression, log(nu(x,y,t)) = beta_0 + beta_1*Z(x,y,t). Unlike the power model
+# nu = a*Z^b = exp(beta_0 + b*log(Z)), Z may be zero or negative. The power model is this model with log(Z) in place of
+# Z, so calc_likelihood_poisson_b and calc_likelihood_poisson_complete give the log likelihood with Z in place of logZ,
+# with the profile likelihood
+#   l(beta_1) = beta_1*sum_i Z_i - n*log(S(beta_1)) + n*log(n) - n,  S(beta_1) = integral of exp(beta_1*Z),
+# and exp(beta_0) = n/S(beta_1). The profile likelihood is concave in beta_1, so it has a single maximum.
+# ----------------------------------------------------------------------------------------------------------------------
+
+#' Find the maximum likelihood estimate of beta_1 in the model with the intensity on log scale
+#' @description
+#' Maximises the profile likelihood calc_likelihood_poisson_b with Z in place of logZ. The scale of beta_1 is 1/Z, so
+#' the search is done for beta_1*sd(Z), which does not depend on the units of Z
+#'
+#' @param Z Array or vector with the covariate, one value per pixel
+#' @param sumZ The sum of Z at the dimple/scar locations
+#' @param n Complete count of points over all timesteps
+#' @param pixelArea Area covered by each value in Z
+#' @param betaInterval Initial interval in which to search for beta_1*sd(Z), see find_b_mle
+#'
+#' @returns The estimate of beta_1. It is 0 when Z is constant, where beta_1 can not be estimated
+find_beta1_mle <- function(Z, sumZ, n, pixelArea, betaInterval){
+  scaleZ <- stats::sd(as.vector(Z))
+  if(!(scaleZ > 0)){
+    return(0)
+  }
+  beta1Scaled <- find_b_mle(logZ = Z/scaleZ, sumLogZ = sumZ/scaleZ, n = n, pixelArea = pixelArea,
+                            bInterval = betaInterval)
+  return(beta1Scaled/scaleZ)
 }

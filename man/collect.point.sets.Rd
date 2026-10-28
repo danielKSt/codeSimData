@@ -2,7 +2,7 @@
 % Please edit documentation in R/result_matrices.R
 \name{collect.point.sets}
 \alias{collect.point.sets}
-\title{Calculate the log likelihood of the global model for a specific lag}
+\title{Collect the point sets that are given}
 \usage{
 collect.point.sets(scars, dimples, detectedDimples)
 }
@@ -17,9 +17,5 @@ collect.point.sets(scars, dimples, detectedDimples)
 Named list with the point sets that are not NULL
 }
 \description{
-Compute the log likelihood of the global model, where the covariate is a statistic of the whole snapshot
-
-Collect the point sets that are given
-
 Puts the point sets that are not NULL in a named list, in the order scars, dimples, detectedDimples
 }

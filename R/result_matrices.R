@@ -115,6 +115,45 @@ fit.given.covar.baseline <- function(Z, structures, l_x, l_y, returnParams,
   return(list(a = a, b = fit$b, nu0 = nu0, lambda = nu0/a, w = fit$w, logLik = fit$logLik))
 }
 
+#' Fit the regression model with the intensity on log scale
+#' @description
+#' The standard model of Poisson regression,
+#' log(intensity(x,y,t))=beta_0+beta_1*Z(x,y,t).
+#' Unlike in fit.given.covar, Z may be zero or negative, for example the positive or negative part of the divergence,
+#' or the divergence itself. The intensity is exponential in Z, while fit.given.covar gives an intensity that is a power
+#' of Z, which is this model with log(Z) in place of Z. Both models have two parameters.
+#'
+#' @param Z TxMxN array of covariates
+#' @param structures List of scars/dimples locations, only at the time indices that we want to use
+#' @param l_x Window length in x direction
+#' @param l_y Window length in y direction
+#' @param returnParams Set to TRUE to return the values beta_0 and beta_1
+#' @param betaInterval Initial interval in which to search for the maximum likelihood estimate of beta_1, in units of
+#' 1/sd(Z). The interval is widened if the maximum is on its edge
+#'
+#' @returns The log likelihood, or a list with beta0, beta1 and the log likelihood. When Z is constant beta_1 can not be
+#' estimated, and beta1 = 0 is returned
+#'
+#' @export
+fit.given.covar.loglinear <- function(Z, structures, l_x, l_y, returnParams, betaInterval = c(-20, 20)){
+  if(any(!is.finite(Z))){
+    stop("The covariate Z must be finite")
+  }
+  pixelArea <- l_x*l_y/(dim(Z)[2]*dim(Z)[3])
+  sumZ <- sum(get_Z_at_points(Z = Z, structures = structures, l_x = l_x, l_y = l_y))
+  n <- sum(vapply(structures, nrow, integer(1)))
+  beta1 <- find_beta1_mle(Z = Z, sumZ = sumZ, n = n, pixelArea = pixelArea, betaInterval = betaInterval)
+  # exp(beta_0) = n/(sum(exp(beta_1*Z))*pixelArea), calculated on the log scale
+  beta0 <- log(n) - log(pixelArea) - log_sum_exp(beta1*Z)
+  logLik <- calc_likelihood_poisson_complete(logA = beta0, b = beta1, logZ = Z, sumLogZ = sumZ, n = n,
+                                             pixelArea = pixelArea)
+  if(returnParams){
+    return(list(beta0 = beta0, beta1 = beta1, logLik = logLik))
+  } else {
+    return(logLik)
+  }
+}
+
 #' Fit the global model from the paper
 #' @description
 #' In the global model the covariate is constant over each snapshot, Z(x,y,t)=Z_t, so the intensity is

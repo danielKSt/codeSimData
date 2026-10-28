@@ -20,5 +20,6 @@ calc_likelihood_poisson_complete(logA, b, logZ, sumLogZ, n, pixelArea)
 \item{pixelArea}{Area of a single pixel}
 }
 \description{
-Calculates the simultaneous likelihood for
+Calculates the simultaneous likelihood for the model intensity = a\emph{Z^b. With Z in place of logZ it is the likelihood
+of the model with the intensity on log scale, log(intensity) = logA + b}Z
 }
